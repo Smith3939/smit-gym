@@ -2,11 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, I18nManager } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { useAuth } from '../context/AuthContext';
 
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 
 export default function HomeScreen({ navigation }) {
+  const { user, userProfile } = useAuth();
+  const displayName = userProfile?.name || user?.displayName || '';
+
   const menuItems = [
     { title: 'תכנית התזונה שלי', icon: 'restaurant', screen: 'NutritionTab', color: COLORS.primary },
     { title: 'מעקב משקלי בוקר', icon: 'monitor-weight', screen: 'WeightTracking', color: COLORS.primary },
@@ -22,7 +26,15 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.logoText}>SMIT GYM</Text>
         </View>
         <Text style={styles.welcome}>ברוך הבא</Text>
+        {displayName ? <Text style={styles.userName}>{displayName}</Text> : null}
       </View>
+
+      <TouchableOpacity
+        style={styles.settingsButton}
+        onPress={() => navigation.navigate('Settings')}
+      >
+        <MaterialIcons name="settings" size={24} color={COLORS.textMuted} />
+      </TouchableOpacity>
 
       <View style={styles.grid}>
         {menuItems.map((item, index) => (
@@ -45,6 +57,22 @@ export default function HomeScreen({ navigation }) {
         >
           <MaterialIcons name="smart-toy" size={24} color={COLORS.primary} />
           <Text style={styles.linkText}>שאל את המאמן AI</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.link}
+          onPress={() => navigation.navigate('ExerciseLibrary')}
+        >
+          <MaterialIcons name="list" size={24} color={COLORS.primary} />
+          <Text style={styles.linkText}>ספריית תרגילים</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.link}
+          onPress={() => navigation.navigate('WaterTracking')}
+        >
+          <MaterialIcons name="water-drop" size={24} color={COLORS.primary} />
+          <Text style={styles.linkText}>מעקב מים</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -79,6 +107,17 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONTS.large,
     marginTop: SPACING.sm,
+  },
+  userName: {
+    color: COLORS.primary,
+    fontSize: FONTS.xlarge,
+    fontWeight: 'bold',
+    marginTop: SPACING.xs,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: SPACING.xxl,
+    left: SPACING.lg,
   },
   grid: {
     flexDirection: 'row',

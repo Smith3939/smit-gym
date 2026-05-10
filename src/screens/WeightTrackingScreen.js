@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import SimpleChart from '../components/SimpleChart';
 
-export default function WeightTrackingScreen() {
+export default function WeightTrackingScreen({ navigation }) {
   const [currentWeight, setCurrentWeight] = useState(70.0);
   const [weightHistory, setWeightHistory] = useState([
     { date: '05/05/26', time: '08:10', weight: 70.0 },
@@ -70,6 +71,15 @@ export default function WeightTrackingScreen() {
           <Text style={styles.goalWeightText}>משקל נוכחי: {currentWeight}</Text>
         </View>
       </View>
+
+      <SimpleChart
+        data={[...weightHistory].reverse().map((entry) => ({
+          value: entry.weight,
+          label: entry.date.substring(0, 5),
+        }))}
+        label="גרף משקל"
+        height={160}
+      />
 
       <Text style={styles.historyTitle}>משקלים אחרונים</Text>
 

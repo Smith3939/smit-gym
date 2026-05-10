@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { sendMessageToAI } from '../services/aiService';
+import { useAuth } from '../context/AuthContext';
 
 const INITIAL_MESSAGE = {
   id: '1',
@@ -13,6 +15,7 @@ const INITIAL_MESSAGE = {
 };
 
 export default function AIChatScreen() {
+  const { userProfile } = useAuth();
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -34,42 +37,29 @@ export default function AIChatScreen() {
       content: text.trim(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputText('');
     setIsLoading(true);
 
-    // AI response simulation - will be replaced with Claude API
-    setTimeout(() => {
-      const aiResponse = generateLocalResponse(text.trim());
+    try {
+      const aiResponse = await sendMessageToAI(
+        updatedMessages.filter((m) => m.id !== '1'),
+        userProfile
+      );
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: aiResponse,
       }]);
-      setIsLoading(false);
-    }, 1000);
-  };
-
-  const generateLocalResponse = (question) => {
-    const q = question.toLowerCase();
-
-    if (q.includes('אורז') || q.includes('פחמימ') || q.includes('החלפ')) {
-      return 'בטח! הנה אלטרנטיבות לפחמימה:\n\n🍚 במקום אורז אפשר:\n• בורגול - 83 קלוריות ל-100 גרם\n• קוסקוס - 112 קלוריות ל-100 גרם\n• קינואה - 120 קלוריות ל-100 גרם\n• בטטה - 86 קלוריות ל-100 גרם\n• תפוח אדמה - 77 קלוריות ל-100 גרם\n\nכל אלה מקורות פחמימה מצוינים. רוצה שאעזור לך לחשב כמויות?';
+    } catch (error) {
+      setMessages((prev) => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'מצטער, הייתה בעיה. נסה שוב 🙏',
+      }]);
     }
-
-    if (q.includes('חלבון') || q.includes('כמה')) {
-      return 'המלצה כללית לצריכת חלבון:\n\n💪 לבניית שריר: 1.6-2.2 גרם לכל ק"ג משקל גוף\n🏃 לחיטוב: 2.0-2.4 גרם לכל ק"ג משקל גוף\n\nלדוגמה, אם אתה שוקל 70 ק"ג:\n• בנייה: 112-154 גרם חלבון ביום\n• חיטוב: 140-168 גרם חלבון ביום\n\nחשוב לחלק את החלבון לאורך כל הארוחות!';
-    }
-
-    if (q.includes('תרגיל') || q.includes('חלופי') || q.includes('באנצ')) {
-      return 'תרגילים חלופיים לבאנצ פרס:\n\n🔄 אפשרויות:\n• לחיצת חזה במכונה - יותר בטוח, תנועה מבוקרת\n• שכיבות סמיכה עם משקולות - עבודה עם משקל חופשי\n• לחיצת חזה עליון בסמית - דגש על חזה עליון\n• פרפר בכבלים - בידוד שריר החזה\n\nלכל אחד יתרונות שונים. מה המטרה שלך?';
-    }
-
-    if (q.includes('חיטוב') || q.includes('תכנית')) {
-      return 'עקרונות לתכנית חיטוב:\n\n📋 אימונים:\n• 4-5 אימונים בשבוע\n• שילוב אירובי 3 פעמים בשבוע\n• טווח חזרות 8-15\n• מנוחה קצרה בין סטים (60-90 שניות)\n\n🥗 תזונה:\n• גירעון קלורי של 300-500 קלוריות\n• חלבון גבוה (2+ גרם לק"ג)\n• הרבה ירקות\n• שתייה של 3+ ליטר מים\n\nרוצה שאפרט יותר על משהו?';
-    }
-
-    return 'שאלה מעולה! 🤔\n\nאני כאן כדי לעזור לך עם כל שאלה על כושר ותזונה. תוכל לשאול אותי על:\n• החלפת מזונות בתפריט\n• תרגילים חלופיים\n• תכניות אימון\n• ערכים תזונתיים\n• טיפים לאימון\n\nנסה לשאול שאלה ספציפית יותר ואשמח לעזור!';
+    setIsLoading(false);
   };
 
   return (

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfileScreen() {
+  const { user, userProfile, updateProfile, logout } = useAuth();
   const [profile, setProfile] = useState({
     name: '',
     age: '',
@@ -12,6 +14,19 @@ export default function ProfileScreen() {
     goal: 'cut',
     activityLevel: 'moderate',
   });
+
+  useEffect(() => {
+    if (userProfile) {
+      setProfile({
+        name: userProfile.name || user?.displayName || '',
+        age: userProfile.age || '',
+        height: userProfile.height || '',
+        weight: userProfile.weight || '',
+        goal: userProfile.goal || 'cut',
+        activityLevel: userProfile.activityLevel || 'moderate',
+      });
+    }
+  }, [userProfile]);
 
   const goals = [
     { id: 'cut', label: 'חיטוב', icon: 'trending-down' },
@@ -25,8 +40,20 @@ export default function ProfileScreen() {
     { id: 'high', label: 'גבוהה (5-6 אימונים)' },
   ];
 
-  const saveProfile = () => {
-    Alert.alert('נשמר!', 'הפרטים שלך עודכנו בהצלחה');
+  const saveProfile = async () => {
+    try {
+      await updateProfile(profile);
+      Alert.alert('נשמר!', 'הפרטים שלך עודכנו בהצלחה');
+    } catch (e) {
+      Alert.alert('שגיאה', 'לא הצלחנו לשמור, נסה שוב');
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert('התנתקות', 'בטוח שאתה רוצה להתנתק?', [
+      { text: 'ביטול', style: 'cancel' },
+      { text: 'התנתק', style: 'destructive', onPress: logout },
+    ]);
   };
 
   return (
@@ -128,6 +155,11 @@ export default function ProfileScreen() {
 
         <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
           <Text style={styles.saveButtonText}>שמור פרטים</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <MaterialIcons name="logout" size={20} color={COLORS.error} />
+          <Text style={styles.logoutButtonText}>התנתקות</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -247,5 +279,21 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
+  },
+  logoutButton: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.error,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
+  },
+  logoutButtonText: {
+    color: COLORS.error,
+    fontSize: FONTS.regular,
+    fontWeight: '600',
   },
 });
