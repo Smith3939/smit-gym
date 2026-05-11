@@ -3,9 +3,10 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { loginUser } from '../services/authService';
+import { signInWithGoogleWeb } from '../services/googleAuthService';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -27,7 +28,27 @@ export default function LoginScreen({ navigation }) {
       else if (error.code === 'auth/wrong-password') msg = 'סיסמה שגויה';
       else if (error.code === 'auth/invalid-email') msg = 'כתובת אימייל לא תקינה';
       else if (error.code === 'auth/too-many-requests') msg = 'יותר מדי ניסיונות, נסה מאוחר יותר';
+      else if (error.code === 'auth/invalid-credential') msg = 'אימייל או סיסמה שגויים';
       Alert.alert('שגיאה', msg);
+    }
+    setLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      if (Platform.OS === 'web') {
+        await signInWithGoogleWeb();
+      } else {
+        Alert.alert(
+          'בקרוב',
+          'התחברות Google זמינה כרגע רק בגרסת ה-Web. תוכל להתחבר עם אימייל וסיסמה.'
+        );
+      }
+    } catch (error) {
+      if (error.code !== 'auth/popup-closed-by-user') {
+        Alert.alert('שגיאה', 'לא הצלחנו להתחבר עם Google. נסה שוב או השתמש באימייל.');
+      }
     }
     setLoading(false);
   };
@@ -103,6 +124,15 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.dividerText}>או</Text>
             <View style={styles.dividerLine} />
           </View>
+
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleLogin}
+            disabled={loading}
+          >
+            <FontAwesome name="google" size={20} color="#DB4437" />
+            <Text style={styles.googleButtonText}>התחבר עם Google</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.registerButton}
@@ -207,6 +237,21 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginHorizontal: SPACING.md,
     fontSize: FONTS.small,
+  },
+  googleButton: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    marginBottom: SPACING.md,
+    gap: SPACING.sm,
+  },
+  googleButtonText: {
+    color: '#333333',
+    fontSize: FONTS.regular,
+    fontWeight: '600',
   },
   registerButton: {
     borderWidth: 1,
