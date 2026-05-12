@@ -3,14 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert 
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
+import { calculateBMI, calculateBMR, calculateTDEE, calculateTargetCalories } from '../services/nutritionEngine';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, userProfile, updateProfile, logout } = useAuth();
   const [profile, setProfile] = useState({
     name: '',
     age: '',
     height: '',
     weight: '',
+    gender: 'male',
     goal: 'cut',
     activityLevel: 'moderate',
   });
@@ -22,11 +24,26 @@ export default function ProfileScreen() {
         age: userProfile.age || '',
         height: userProfile.height || '',
         weight: userProfile.weight || '',
+        gender: userProfile.gender || 'male',
         goal: userProfile.goal || 'cut',
         activityLevel: userProfile.activityLevel || 'moderate',
       });
     }
   }, [userProfile]);
+
+  // Calculate live stats
+  const weightNum = Number(profile.weight) || 0;
+  const heightNum = Number(profile.height) || 0;
+  const ageNum = Number(profile.age) || 0;
+  const bmi = calculateBMI(weightNum, heightNum);
+  const bmr = calculateBMR(weightNum, heightNum, ageNum, profile.gender);
+  const tdee = calculateTDEE(bmr, profile.activityLevel);
+  const targetCal = calculateTargetCalories(tdee, profile.goal);
+
+  const genders = [
+    { id: 'male', label: 'גבר' },
+    { id: 'female', label: 'אישה' },
+  ];
 
   const goals = [
     { id: 'cut', label: 'חיטוב', icon: 'trending-down' },
@@ -64,6 +81,24 @@ export default function ProfileScreen() {
         </View>
         <Text style={styles.title}>הפרופיל שלי</Text>
       </View>
+
+      {/* Live Stats Card */}
+      {weightNum > 0 && heightNum > 0 && ageNum > 0 && (
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{bmi.value}</Text>
+            <Text style={styles.statLabel}>BMI</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{tdee}</Text>
+            <Text style={styles.statLabel}>TDEE</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{targetCal}</Text>
+            <Text style={styles.statLabel}>יעד קלוריות</Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.form}>
         <View style={styles.field}>
@@ -115,6 +150,26 @@ export default function ProfileScreen() {
               textAlign="center"
             />
           </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>מין</Text>
+        <View style={styles.goalRow}>
+          {genders.map((g) => (
+            <TouchableOpacity
+              key={g.id}
+              style={[styles.goalButton, profile.gender === g.id && styles.goalButtonActive]}
+              onPress={() => setProfile({ ...profile, gender: g.id })}
+            >
+              <MaterialIcons
+                name={g.id === 'male' ? 'male' : 'female'}
+                size={24}
+                color={profile.gender === g.id ? COLORS.text : COLORS.textMuted}
+              />
+              <Text style={[styles.goalText, profile.gender === g.id && styles.goalTextActive]}>
+                {g.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <Text style={styles.sectionTitle}>מטרה</Text>
@@ -295,5 +350,29 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: FONTS.regular,
     fontWeight: '600',
+  },
+  statsCard: {
+    flexDirection: 'row-reverse',
+    backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    justifyContent: 'space-around',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    color: COLORS.primary,
+    fontSize: FONTS.large,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.tiny,
+    marginTop: SPACING.xs,
   },
 });
