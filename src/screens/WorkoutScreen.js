@@ -9,9 +9,15 @@ import {
   Modal,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS } from '../config/theme';
+import GlassCard from '../components/GlassCard';
+import GeometricPattern from '../components/GeometricPattern';
+import ProgressRing from '../components/ProgressRing';
+import { FadeInView } from '../components/AnimatedCard';
 import { useAuth } from '../context/AuthContext';
 import {
   generateProgram,
@@ -325,57 +331,144 @@ export default function WorkoutScreen() {
   const currentSession = program.sessions[activeDay];
   const dayKeys = Object.keys(program.sessions);
 
+  const completedExercises = Object.keys(setLogs).length;
+  const totalExercises = currentSession?.exercises?.length || 1;
+  const progress = completedExercises / totalExercises;
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <MaterialIcons name="fitness-center" size={32} color={COLORS.primary} />
-        <Text style={styles.title}>SMIT GYM</Text>
-      </View>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-      {/* Program Info Bar */}
-      <TouchableOpacity
-        style={styles.programInfoBar}
-        onPress={() => setShowProgramSelector(true)}
-      >
-        <MaterialIcons name="keyboard-arrow-down" size={24} color={COLORS.primary} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.programName}>{program.name}</Text>
-          <Text style={styles.programDesc}>{program.description}</Text>
-        </View>
-        <MaterialIcons name="swap-vert" size={24} color={COLORS.primary} />
-      </TouchableOpacity>
-
-      {/* Day Tabs */}
-      <View style={styles.tabBar}>
-        {dayKeys.map((dayKey) => (
-          <TouchableOpacity
-            key={dayKey}
-            style={[styles.tab, activeDay === dayKey && styles.activeTab]}
-            onPress={() => setActiveDay(dayKey)}
-          >
-            <Text style={[styles.tabText, activeDay === dayKey && styles.activeTabText]}>
-              {dayKey}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Session Header */}
-      {currentSession && (
-        <View style={styles.sessionHeader}>
-          <TouchableOpacity style={styles.variateButton} onPress={handleVariateDay}>
-            <MaterialIcons name="auto-fix-high" size={18} color={COLORS.primary} />
-            <Text style={styles.variateText}>גוון עם AI</Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.sessionName}>{currentSession.name}</Text>
-            <Text style={styles.sessionMeta}>
-              {currentSession.exercises.length} תרגילים | ~{currentSession.estimatedDuration} דקות
-            </Text>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <FadeInView style={styles.header}>
+          <View style={styles.headerIconBg}>
+            <MaterialIcons name="fitness-center" size={28} color={COLORS.primary} />
           </View>
-        </View>
-      )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>אימונים</Text>
+            <Text style={styles.headerSubtitle}>תוכנית האימונים שלך</Text>
+          </View>
+        </FadeInView>
+
+        {/* Hero Workout Card */}
+        <GlassCard
+          delay={100}
+          gradientColors={['rgba(255,107,53,0.25)', 'rgba(229,75,31,0.1)']}
+          borderColor="rgba(255,107,53,0.3)"
+          style={styles.heroCard}
+          glow
+        >
+          <View style={styles.patternOverlay}>
+            <GeometricPattern type="hexagon" color={COLORS.primary} opacity={0.15} size={400} />
+          </View>
+
+          <View style={styles.heroContent}>
+            <View style={styles.heroLeft}>
+              <View style={styles.heroBadge}>
+                <MaterialIcons name="flash-on" size={14} color={COLORS.secondary} />
+                <Text style={styles.heroBadgeText}>אימון היום</Text>
+              </View>
+              <Text style={styles.heroSessionName}>{currentSession?.name || 'אימון'}</Text>
+              <View style={styles.heroStatsRow}>
+                <View style={styles.heroStat}>
+                  <MaterialIcons name="fitness-center" size={16} color={COLORS.primary} />
+                  <Text style={styles.heroStatValue}>{totalExercises}</Text>
+                  <Text style={styles.heroStatLabel}>תרגילים</Text>
+                </View>
+                <View style={styles.heroStatDivider} />
+                <View style={styles.heroStat}>
+                  <MaterialIcons name="schedule" size={16} color={COLORS.secondary} />
+                  <Text style={styles.heroStatValue}>{currentSession?.estimatedDuration || '--'}</Text>
+                  <Text style={styles.heroStatLabel}>דקות</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.heroRight}>
+              <ProgressRing
+                size={100}
+                strokeWidth={8}
+                progress={progress}
+                gradientId="workoutRing"
+                gradientColors={[COLORS.primary, COLORS.secondary]}
+              >
+                <Text style={styles.heroRingValue}>{Math.round(progress * 100)}%</Text>
+                <Text style={styles.heroRingLabel}>הושלם</Text>
+              </ProgressRing>
+            </View>
+          </View>
+        </GlassCard>
+
+        {/* Program selector */}
+        <FadeInView delay={200}>
+          <TouchableOpacity
+            style={styles.programChip}
+            onPress={() => setShowProgramSelector(true)}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="swap-vert" size={20} color={COLORS.primary} />
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <Text style={styles.programName}>{program.name}</Text>
+              <Text style={styles.programDesc}>{program.description}</Text>
+            </View>
+            <MaterialIcons name="tune" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        </FadeInView>
+
+        {/* Day Tabs - bento style */}
+        <FadeInView delay={300}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBar}>
+            {dayKeys.map((dayKey, idx) => {
+              const isActive = activeDay === dayKey;
+              const colors = [COLORS.primary, COLORS.tertiary, COLORS.accent, COLORS.success];
+              const dayColor = colors[idx % colors.length];
+
+              return (
+                <TouchableOpacity
+                  key={dayKey}
+                  style={[
+                    styles.tab,
+                    isActive && {
+                      backgroundColor: dayColor + '25',
+                      borderColor: dayColor,
+                    },
+                  ]}
+                  onPress={() => setActiveDay(dayKey)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.tabText, isActive && { color: dayColor }]}>
+                    {dayKey}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </FadeInView>
+
+        {/* Session Header */}
+        {currentSession && (
+          <FadeInView delay={400} style={styles.sessionHeader}>
+            <TouchableOpacity style={styles.variateButton} onPress={handleVariateDay} activeOpacity={0.8}>
+              <LinearGradient
+                colors={[COLORS.tertiary + '40', COLORS.accent + '20']}
+                style={styles.variateBg}
+              >
+                <MaterialIcons name="auto-fix-high" size={16} color={COLORS.tertiary} />
+                <Text style={styles.variateText}>גוון עם AI</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+            <View style={styles.sessionTitleBlock}>
+              <Text style={styles.sessionName}>{currentSession.name}</Text>
+              <Text style={styles.sessionMeta}>
+                {currentSession.exercises.length} תרגילים · ~{currentSession.estimatedDuration} דקות
+              </Text>
+            </View>
+          </FadeInView>
+        )}
 
       {/* Exercise List */}
       {currentSession?.exercises.map((exercise, index) => (
@@ -390,60 +483,178 @@ export default function WorkoutScreen() {
         />
       ))}
 
-      {/* Finish Workout Button */}
-      <TouchableOpacity style={styles.finishButton}>
-        <MaterialIcons name="check-circle" size={24} color={COLORS.text} />
-        <Text style={styles.finishButtonText}>סיים אימון</Text>
-      </TouchableOpacity>
+        {/* Finish Workout Button */}
+        <TouchableOpacity activeOpacity={0.85}>
+          <LinearGradient
+            colors={GRADIENTS.primary}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.finishButton}
+          >
+            <MaterialIcons name="check-circle" size={24} color={COLORS.text} />
+            <Text style={styles.finishButtonText}>סיים אימון</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-      {/* Modals */}
-      <ProgramSelectorModal
-        visible={showProgramSelector}
-        onClose={() => setShowProgramSelector(false)}
-        onSelect={handleSelectProgram}
-        currentType={program.type}
-        suggestedType={suggestedType}
-      />
+        {/* Modals */}
+        <ProgramSelectorModal
+          visible={showProgramSelector}
+          onClose={() => setShowProgramSelector(false)}
+          onSelect={handleSelectProgram}
+          currentType={program.type}
+          suggestedType={suggestedType}
+        />
 
-      <ExerciseSwapModal
-        visible={swapModal.visible}
-        onClose={() => setSwapModal({ ...swapModal, visible: false })}
-        alternatives={swapModal.alternatives}
-        reasoning={swapModal.reasoning}
-        onSelect={handleSelectAlternative}
-      />
+        <ExerciseSwapModal
+          visible={swapModal.visible}
+          onClose={() => setSwapModal({ ...swapModal, visible: false })}
+          alternatives={swapModal.alternatives}
+          reasoning={swapModal.reasoning}
+          onSelect={handleSelectAlternative}
+        />
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: SPACING.xxl,
   },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: SPACING.xxl + SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+
+  // Header
   header: {
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    gap: SPACING.md,
   },
-  title: {
-    color: COLORS.primary,
-    fontSize: FONTS.large,
+  headerIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '40',
+  },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.xlarge,
     fontWeight: 'bold',
-    letterSpacing: 2,
+    textAlign: 'right',
+  },
+  headerSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.small,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+
+  // Hero Card
+  heroCard: {
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  patternOverlay: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    opacity: 0.5,
+  },
+  heroContent: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroLeft: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  heroRight: {
+    marginLeft: SPACING.md,
+  },
+  heroBadge: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,182,39,0.2)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,182,39,0.4)',
+  },
+  heroBadgeText: {
+    color: COLORS.secondary,
+    fontSize: FONTS.tiny,
+    fontWeight: '700',
+  },
+  heroSessionName: {
+    color: COLORS.text,
+    fontSize: FONTS.xlarge,
+    fontWeight: '900',
+    marginTop: SPACING.sm,
+    textAlign: 'right',
+  },
+  heroStatsRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    marginTop: SPACING.md,
+    gap: SPACING.md,
+  },
+  heroStat: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 4,
+  },
+  heroStatValue: {
+    color: COLORS.text,
+    fontSize: FONTS.regular,
+    fontWeight: 'bold',
+    marginRight: 4,
+  },
+  heroStatLabel: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: COLORS.border,
+  },
+  heroRingValue: {
+    color: COLORS.text,
+    fontSize: FONTS.medium,
+    fontWeight: 'bold',
+  },
+  heroRingLabel: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
   },
 
   // Program Info Bar
-  programInfoBar: {
+  programChip: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    marginHorizontal: SPACING.md,
     marginBottom: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -462,22 +673,21 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Tabs
+  // Tabs - bento style
   tabBar: {
     flexDirection: 'row-reverse',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.md,
-    marginVertical: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    marginHorizontal: SPACING.lg,
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xs,
+    gap: SPACING.sm,
+    paddingHorizontal: 2,
+    marginBottom: SPACING.md,
   },
   tab: {
-    flex: 1,
     paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.xl,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: BORDER_RADIUS.lg,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    minWidth: 80,
     alignItems: 'center',
   },
   activeTab: {
@@ -486,7 +696,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: COLORS.textSecondary,
     fontSize: FONTS.small,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   activeTabText: {
     color: COLORS.text,
@@ -497,8 +707,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: SPACING.md,
     marginVertical: SPACING.md,
+  },
+  sessionTitleBlock: {
+    alignItems: 'flex-end',
+  },
+  variateBg: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(160,108,213,0.4)',
   },
   sessionName: {
     color: COLORS.text,

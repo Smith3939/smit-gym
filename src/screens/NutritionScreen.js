@@ -10,11 +10,16 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
 import { calculateNutritionPlan } from '../services/nutritionEngine';
 import { generateDailyPlan, getAlternatives } from '../services/mealPlanGenerator';
 import { requestFoodSwap } from '../services/aiNutritionService';
+import GlassCard from '../components/GlassCard';
+import GeometricPattern from '../components/GeometricPattern';
+import ProgressRing from '../components/ProgressRing';
+import { FadeInView } from '../components/AnimatedCard';
 
 // ─── Macro Summary Card ─────────────────────────────────────────────────────
 function MacroSummaryCard({ nutritionPlan }) {
@@ -337,67 +342,310 @@ export default function NutritionScreen({ navigation }) {
 
   const mealOrder = ['breakfast', 'lunch', 'pre_workout', 'dinner', 'free_calories'];
 
+  const targetCalories = nutritionPlan?.targetCalories || 2000;
+  const consumedCalories = 0; // TODO: from real data
+  const progress = consumedCalories / targetCalories;
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <MaterialIcons name="restaurant" size={32} color={COLORS.primary} />
-        <Text style={styles.title}>תזונה</Text>
-      </View>
-
-      {/* Macro Summary */}
-      <MacroSummaryCard nutritionPlan={nutritionPlan} />
-
-      {/* AI Consultation Button */}
-      <TouchableOpacity
-        style={styles.aiButton}
-        onPress={() => navigation?.navigate?.('AIChat')}
-      >
-        <MaterialIcons name="smart-toy" size={20} color={COLORS.primary} />
-        <Text style={styles.aiButtonText}>התייעץ עם ה-AI לגבי התפריט</Text>
-      </TouchableOpacity>
-
-      {/* Daily Meal Plan */}
-      <Text style={styles.sectionHeader}>התפריט היומי שלך</Text>
-      <Text style={styles.sectionSubtext}>
-        לחץ על ↔ כדי להחליף מזון עם המלצת AI
-      </Text>
-
-      {dailyMealPlan && mealOrder.map((mealId) => {
-        const meal = dailyMealPlan[mealId];
-        if (!meal) return null;
-        return (
-          <MealCard
-            key={mealId}
-            meal={meal}
-            isExpanded={expandedMeal === mealId}
-            onToggle={() => setExpandedMeal(expandedMeal === mealId ? null : mealId)}
-            onSwapFood={handleSwapFood}
-            swapping={swapping}
-          />
-        );
-      })}
-
-      {/* Swap Modal */}
-      <SwapModal
-        visible={swapModal.visible}
-        onClose={() => setSwapModal({ ...swapModal, visible: false })}
-        alternatives={swapModal.alternatives}
-        reasoning={swapModal.reasoning}
-        onSelect={handleSelectAlternative}
+    <View style={styles.root}>
+      <LinearGradient
+        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
+        style={StyleSheet.absoluteFillObject}
       />
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <FadeInView style={styles.headerNew}>
+          <View style={styles.headerIconBg}>
+            <MaterialIcons name="restaurant" size={28} color={COLORS.success} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>תזונה</Text>
+            <Text style={styles.headerSubtitle}>תכנית התזונה שלך</Text>
+          </View>
+        </FadeInView>
+
+        {/* Hero Nutrition Card */}
+        <GlassCard
+          delay={100}
+          gradientColors={['rgba(76,217,100,0.25)', 'rgba(91,192,235,0.1)']}
+          borderColor="rgba(76,217,100,0.3)"
+          style={styles.heroCard}
+          glow
+        >
+          <View style={styles.patternOverlay}>
+            <GeometricPattern type="circles" color={COLORS.success} opacity={0.2} size={400} />
+          </View>
+
+          <View style={styles.heroContent}>
+            <View style={styles.heroLeft}>
+              <View style={styles.heroBadge}>
+                <MaterialIcons name="local-fire-department" size={14} color={COLORS.success} />
+                <Text style={styles.heroBadgeText}>היום</Text>
+              </View>
+              <Text style={styles.heroBigNumber}>{consumedCalories}</Text>
+              <Text style={styles.heroSubtext}>מתוך {targetCalories} קל</Text>
+
+              {nutritionPlan?.macros && (
+                <View style={styles.macrosRow}>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(76,217,100,0.2)' }]}>
+                    <Text style={[styles.macroValue, { color: COLORS.success }]}>{nutritionPlan.macros.protein}ג</Text>
+                    <Text style={styles.macroLabel}>חלבון</Text>
+                  </View>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,182,39,0.2)' }]}>
+                    <Text style={[styles.macroValue, { color: COLORS.secondary }]}>{nutritionPlan.macros.carbs}ג</Text>
+                    <Text style={styles.macroLabel}>פחמ׳</Text>
+                  </View>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,107,53,0.2)' }]}>
+                    <Text style={[styles.macroValue, { color: COLORS.primary }]}>{nutritionPlan.macros.fat}ג</Text>
+                    <Text style={styles.macroLabel}>שומן</Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.heroRight}>
+              <ProgressRing
+                size={110}
+                strokeWidth={10}
+                progress={progress}
+                gradientId="nutritionRing"
+                gradientColors={[COLORS.success, COLORS.accent]}
+              >
+                <Text style={styles.heroRingValue}>{Math.round(progress * 100)}%</Text>
+                <Text style={styles.heroRingLabel}>מהיעד</Text>
+              </ProgressRing>
+            </View>
+          </View>
+        </GlassCard>
+
+        {/* AI Consultation - now styled as glass card */}
+        <GlassCard
+          onPress={() => navigation?.navigate?.('AIChat')}
+          gradientColors={['rgba(160,108,213,0.2)', 'rgba(91,192,235,0.1)']}
+          borderColor="rgba(160,108,213,0.4)"
+          delay={200}
+          style={{ marginBottom: SPACING.md, padding: 0 }}
+        >
+          <View style={styles.aiButtonInner}>
+            <View style={styles.aiIconBg}>
+              <MaterialIcons name="smart-toy" size={24} color={COLORS.tertiary} />
+            </View>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              <Text style={styles.aiTitle}>התייעץ עם ה-AI</Text>
+              <Text style={styles.aiSubtitle}>שאל על מזונות, חלופות, או טיפים</Text>
+            </View>
+            <MaterialIcons name="chevron-left" size={24} color={COLORS.tertiary} />
+          </View>
+        </GlassCard>
+
+        {/* Section header */}
+        <FadeInView delay={300} style={styles.sectionHeaderBlock}>
+          <View>
+            <Text style={styles.sectionHeader}>התפריט היומי שלך</Text>
+            <Text style={styles.sectionSubtext}>
+              לחץ על ↔ כדי להחליף מזון עם המלצת AI
+            </Text>
+          </View>
+          <View style={styles.sectionDot} />
+        </FadeInView>
+
+        {dailyMealPlan && mealOrder.map((mealId) => {
+          const meal = dailyMealPlan[mealId];
+          if (!meal) return null;
+          return (
+            <MealCard
+              key={mealId}
+              meal={meal}
+              isExpanded={expandedMeal === mealId}
+              onToggle={() => setExpandedMeal(expandedMeal === mealId ? null : mealId)}
+              onSwapFood={handleSwapFood}
+              swapping={swapping}
+            />
+          );
+        })}
+
+        {/* Swap Modal */}
+        <SwapModal
+          visible={swapModal.visible}
+          onClose={() => setSwapModal({ ...swapModal, visible: false })}
+          alternatives={swapModal.alternatives}
+          reasoning={swapModal.reasoning}
+          onSelect={handleSelectAlternative}
+        />
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: SPACING.xxl,
   },
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: SPACING.xxl + SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+  headerNew: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    gap: SPACING.md,
+  },
+  headerIconBg: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.success + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.success + '40',
+  },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.xlarge,
+    fontWeight: 'bold',
+    textAlign: 'right',
+  },
+  headerSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.small,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+
+  // Hero Card
+  heroCard: {
+    marginBottom: SPACING.md,
+    padding: SPACING.lg,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  patternOverlay: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    opacity: 0.6,
+  },
+  heroContent: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroLeft: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  heroRight: {
+    marginLeft: SPACING.md,
+  },
+  heroBadge: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76,217,100,0.2)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(76,217,100,0.4)',
+  },
+  heroBadgeText: {
+    color: COLORS.success,
+    fontSize: FONTS.tiny,
+    fontWeight: '700',
+  },
+  heroBigNumber: {
+    color: COLORS.text,
+    fontSize: 48,
+    fontWeight: '900',
+    marginTop: SPACING.xs,
+    lineHeight: 52,
+  },
+  heroSubtext: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.small,
+  },
+  macrosRow: {
+    flexDirection: 'row-reverse',
+    gap: SPACING.xs,
+    marginTop: SPACING.md,
+  },
+  macroBadge: {
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    minWidth: 50,
+  },
+  macroValue: {
+    fontSize: FONTS.small,
+    fontWeight: 'bold',
+  },
+  macroLabel: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.micro,
+    marginTop: 2,
+  },
+  heroRingValue: {
+    color: COLORS.text,
+    fontSize: FONTS.medium,
+    fontWeight: 'bold',
+  },
+  heroRingLabel: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+  },
+
+  // AI Button (new style)
+  aiButtonInner: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    padding: SPACING.md,
+    gap: SPACING.md,
+  },
+  aiIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(160,108,213,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.regular,
+    fontWeight: 'bold',
+  },
+  aiSubtitle: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.tiny,
+    marginTop: 2,
+  },
+
+  // Section header
+  sectionHeaderBlock: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.success,
+  },
+
   header: {
     alignItems: 'center',
     padding: SPACING.md,
