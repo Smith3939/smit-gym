@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  Animated, Dimensions,
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import {
+  COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
+} from '../config/theme';
 import { loginUser } from '../services/authService';
 import { signInWithGoogleWeb } from '../services/googleAuthService';
 import { useToast } from '../components/Toast';
 import { FadeInView } from '../components/AnimatedCard';
+import GlassCard from '../components/GlassCard';
+import ParticleBackground from '../components/ParticleBackground';
+
+const { width } = Dimensions.get('window');
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -16,6 +25,41 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+
+  const logoScale = useRef(new Animated.Value(0)).current;
+  const logoRotation = useRef(new Animated.Value(0)).current;
+  const glowPulse = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    Animated.spring(logoScale, {
+      toValue: 1,
+      friction: 5,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.loop(
+      Animated.timing(logoRotation, {
+        toValue: 1,
+        duration: 8000,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowPulse, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(glowPulse, {
+          toValue: 0.5,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -55,98 +99,183 @@ export default function LoginScreen({ navigation }) {
     setLoading(false);
   };
 
+  const spin = logoRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <FadeInView style={styles.logoSection}>
-          <View style={styles.logoIconBg}>
-            <MaterialIcons name="fitness-center" size={56} color={COLORS.primary} />
-          </View>
-          <Text style={styles.logoText}>SMIT GYM</Text>
-          <Text style={styles.subtitle}>המאמן האישי שלך</Text>
-        </FadeInView>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
+        style={StyleSheet.absoluteFillObject}
+      />
 
-        <FadeInView delay={200} style={styles.form}>
-          <Text style={styles.formTitle}>התחברות</Text>
+      <View style={styles.glowBg}>
+        <Svg width={width} height={width}>
+          <Defs>
+            <RadialGradient id="loginGlow" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor={COLORS.primary} stopOpacity="0.25" />
+              <Stop offset="100%" stopColor={COLORS.primary} stopOpacity="0" />
+            </RadialGradient>
+          </Defs>
+          <Circle cx="50%" cy="50%" r="50%" fill="url(#loginGlow)" />
+        </Svg>
+      </View>
 
-          <View style={styles.inputContainer}>
-            <MaterialIcons name="email" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="אימייל"
-              placeholderTextColor={COLORS.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              textAlign="right"
+      <ParticleBackground count={10} color={COLORS.primary} />
+
+      <KeyboardAvoidingView
+        style={styles.kav}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {/* Logo */}
+          <View style={styles.logoSection}>
+            <Animated.View style={[styles.ringOuter, { transform: [{ rotate: spin }] }]}>
+              <Svg width={160} height={160} viewBox="0 0 100 100">
+                <Circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  stroke={COLORS.primary}
+                  strokeWidth="1.5"
+                  strokeDasharray="8 4"
+                  fill="none"
+                  opacity="0.5"
+                />
+              </Svg>
+            </Animated.View>
+
+            <Animated.View
+              style={[
+                styles.glowCircle,
+                { opacity: glowPulse, transform: [{ scale: glowPulse }] },
+              ]}
             />
+
+            <Animated.View
+              style={[
+                styles.logoCircle,
+                { transform: [{ scale: logoScale }] },
+              ]}
+            >
+              <LinearGradient
+                colors={GRADIENTS.primaryHero}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.logoGradient}
+              >
+                <MaterialIcons name="fitness-center" size={52} color={COLORS.text} />
+              </LinearGradient>
+            </Animated.View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <MaterialIcons
-                name={showPassword ? 'visibility' : 'visibility-off'}
-                size={22}
-                color={COLORS.textMuted}
-              />
+          <FadeInView delay={300}>
+            <Text style={styles.appName}>SMIT GYM</Text>
+            <Text style={styles.tagline}>המאמן האישי שלך</Text>
+          </FadeInView>
+
+          <GlassCard
+            delay={500}
+            style={styles.form}
+            gradientColors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
+          >
+            <Text style={styles.formTitle}>התחברות</Text>
+
+            <View style={styles.inputWrapper}>
+              <View style={styles.inputContainer}>
+                <MaterialIcons name="email" size={22} color={COLORS.primary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="אימייל"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textAlign="right"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <View style={styles.inputContainer}>
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                  <MaterialIcons
+                    name={showPassword ? 'visibility' : 'visibility-off'}
+                    size={22}
+                    color={COLORS.textMuted}
+                  />
+                </TouchableOpacity>
+                <TextInput
+                  style={styles.input}
+                  placeholder="סיסמה"
+                  placeholderTextColor={COLORS.textMuted}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  textAlign="right"
+                />
+                <MaterialIcons name="lock" size={22} color={COLORS.primary} />
+              </View>
+            </View>
+
+            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+              <Text style={styles.forgotText}>שכחת סיסמה?</Text>
             </TouchableOpacity>
-            <TextInput
-              style={styles.input}
-              placeholder="סיסמה"
-              placeholderTextColor={COLORS.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              textAlign="right"
-            />
-            <MaterialIcons name="lock" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
-          </View>
 
-          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={styles.forgotText}>שכחת סיסמה?</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={GRADIENTS.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.loginButton, loading && styles.buttonDisabled]}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.text} />
+                ) : (
+                  <>
+                    <MaterialIcons name="arrow-forward" size={20} color={COLORS.text} />
+                    <Text style={styles.loginButtonText}>התחבר</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.loginButton, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.text} />
-            ) : (
-              <Text style={styles.loginButtonText}>התחבר</Text>
-            )}
-          </TouchableOpacity>
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>או</Text>
+              <View style={styles.dividerLine} />
+            </View>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>או</Text>
-            <View style={styles.dividerLine} />
-          </View>
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              <FontAwesome name="google" size={20} color="#DB4437" />
+              <Text style={styles.googleButtonText}>התחבר עם Google</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleLogin}
-            disabled={loading}
-          >
-            <FontAwesome name="google" size={20} color="#DB4437" />
-            <Text style={styles.googleButtonText}>התחבר עם Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.registerButton}
-            onPress={() => navigation.navigate('Register')}
-          >
-            <Text style={styles.registerButtonText}>צור חשבון חדש</Text>
-          </TouchableOpacity>
-        </FadeInView>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              style={styles.registerButton}
+              onPress={() => navigation.navigate('Register')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.registerButtonText}>צור חשבון חדש</Text>
+              <MaterialIcons name="person-add" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+          </GlassCard>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -155,6 +284,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  glowBg: {
+    position: 'absolute',
+    top: -width * 0.3,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  kav: {
+    flex: 1,
+  },
   content: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -162,39 +301,49 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     alignItems: 'center',
-    marginBottom: SPACING.xxl,
+    justifyContent: 'center',
+    height: 180,
+    marginBottom: SPACING.md,
   },
-  logoIconBg: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: COLORS.surface,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
+  ringOuter: {
+    position: 'absolute',
+  },
+  glowCircle: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: COLORS.primary,
+    opacity: 0.3,
+  },
+  logoCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    ...SHADOWS.glow,
+  },
+  logoGradient: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.md,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
   },
-  logoText: {
-    color: COLORS.primary,
-    fontSize: 42,
-    fontWeight: 'bold',
-    letterSpacing: 4,
-    marginTop: SPACING.md,
+  appName: {
+    color: COLORS.text,
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: 6,
+    textAlign: 'center',
+    marginBottom: SPACING.xs,
   },
-  subtitle: {
+  tagline: {
     color: COLORS.textSecondary,
     fontSize: FONTS.medium,
-    marginTop: SPACING.sm,
+    textAlign: 'center',
+    marginBottom: SPACING.xl,
   },
   form: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
   },
   formTitle: {
@@ -204,18 +353,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: SPACING.lg,
   },
+  inputWrapper: {
+    marginBottom: SPACING.md,
+  },
   inputContainer: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
-  },
-  inputIcon: {
-    marginLeft: SPACING.sm,
+    gap: SPACING.sm,
   },
   input: {
     flex: 1,
@@ -228,15 +377,19 @@ const styles = StyleSheet.create({
     fontSize: FONTS.small,
     textAlign: 'left',
     marginBottom: SPACING.lg,
+    fontWeight: '600',
   },
   loginButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
+    flexDirection: 'row-reverse',
     paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    ...SHADOWS.glow,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   loginButtonText: {
     color: COLORS.text,
@@ -269,16 +422,19 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   googleButtonText: {
-    color: '#333333',
+    color: '#333',
     fontSize: FONTS.regular,
     fontWeight: '600',
   },
   registerButton: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.primary,
     borderRadius: BORDER_RADIUS.md,
     paddingVertical: SPACING.md,
-    alignItems: 'center',
+    gap: SPACING.sm,
   },
   registerButtonText: {
     color: COLORS.primary,
