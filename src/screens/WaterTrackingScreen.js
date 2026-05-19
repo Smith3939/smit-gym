@@ -43,8 +43,13 @@ export default function WaterTrackingScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <MaterialIcons name="arrow-forward" size={28} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>מעקב מים</Text>
-        <MaterialIcons name="water-drop" size={28} color={COLORS.primary} />
+        <View style={styles.headerCenterRow}>
+          <MaterialIcons name="water-drop" size={28} color={COLORS.primary} />
+          <Text style={styles.title}>מעקב מים</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.backButton}>
+          <MaterialIcons name="home" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.progressSection}>
@@ -126,7 +131,19 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   backButton: {
-    marginLeft: SPACING.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerCenterRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   title: {
     color: COLORS.text,

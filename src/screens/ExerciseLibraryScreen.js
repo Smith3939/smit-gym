@@ -74,9 +74,12 @@ export default function ExerciseLibraryScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-forward" size={28} color={COLORS.text} />
+          <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>כל התרגילים - {selectedGroupName}</Text>
+        <Text style={styles.title} numberOfLines={1}>תרגילים - {selectedGroupName}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.backButton}>
+          <MaterialIcons name="home" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
@@ -165,17 +168,26 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: SPACING.md,
+    gap: SPACING.sm,
   },
   backButton: {
-    marginLeft: SPACING.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   title: {
     color: COLORS.text,
-    fontSize: FONTS.large,
+    fontSize: FONTS.medium,
     fontWeight: 'bold',
     flex: 1,
-    textAlign: 'right',
+    textAlign: 'center',
   },
   searchContainer: {
     flexDirection: 'row',

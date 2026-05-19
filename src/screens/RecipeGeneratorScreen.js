@@ -345,9 +345,12 @@ export default function RecipeGeneratorScreen({ navigation }) {
             <Text style={styles.title}>מתכונים חכמים</Text>
             <Text style={styles.subtitle}>חישוב מנות לפי הקלוריות שלך</Text>
           </View>
-          <View style={styles.iconBg}>
-            <MaterialIcons name="menu-book" size={26} color={COLORS.primary} />
-          </View>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => navigation?.navigate?.('Main')}
+          >
+            <MaterialIcons name="home" size={24} color={COLORS.text} />
+          </TouchableOpacity>
         </FadeInView>
 
         {/* Calorie Budget Input */}

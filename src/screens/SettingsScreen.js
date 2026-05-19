@@ -25,11 +25,16 @@ export default function SettingsScreen({ navigation }) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-forward" size={28} color={COLORS.text} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
+          <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.title}>הגדרות</Text>
-        <MaterialIcons name="settings" size={28} color={COLORS.primary} />
+        <View style={styles.headerCenter}>
+          <MaterialIcons name="settings" size={24} color={COLORS.primary} />
+          <Text style={styles.title}>הגדרות</Text>
+        </View>
+        <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.headerBtn}>
+          <MaterialIcons name="home" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.sectionTitle}>התראות</Text>
@@ -118,9 +123,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: SPACING.md,
   },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerCenter: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   title: {
     color: COLORS.text,
-    fontSize: FONTS.xlarge,
+    fontSize: FONTS.large,
     fontWeight: 'bold',
   },
   sectionTitle: {

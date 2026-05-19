@@ -31,9 +31,23 @@ export default function WeightTrackingScreen({ navigation }) {
 
   return (
     <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <MaterialIcons name="monitor-weight" size={32} color={COLORS.primary} />
-        <Text style={styles.title}>משקל נוכחי</Text>
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation?.goBack?.()}
+        >
+          <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <MaterialIcons name="monitor-weight" size={28} color={COLORS.primary} />
+          <Text style={styles.title}>משקל נוכחי</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation?.navigate?.('Main')}
+        >
+          <MaterialIcons name="home" size={24} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.weightDisplay}>
@@ -109,6 +123,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingTop: SPACING.xxl,
   },
+  topBar: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.md,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerCenter: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
   header: {
     alignItems: 'center',
     padding: SPACING.md,
@@ -116,7 +151,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.text,
     fontSize: FONTS.large,
-    marginTop: SPACING.sm,
+    fontWeight: '700',
   },
   weightDisplay: {
     alignItems: 'center',
