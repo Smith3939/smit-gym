@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { useToast } from '../components/Toast';
 
 const GLASS_SIZE = 250; // ml per glass
 
 export default function WaterTrackingScreen({ navigation }) {
+  const toast = useToast();
   const [dailyGoal] = useState(3500); // ml
   const [consumed, setConsumed] = useState(0);
   const [log, setLog] = useState([]);
@@ -17,8 +19,15 @@ export default function WaterTrackingScreen({ navigation }) {
   const addWater = (amount) => {
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setConsumed((prev) => prev + amount);
+    const newTotal = consumed + amount;
+    setConsumed(newTotal);
     setLog((prev) => [{ time, amount, id: Date.now() }, ...prev]);
+
+    if (newTotal >= dailyGoal && consumed < dailyGoal) {
+      toast.success('כל הכבוד! עמדת ביעד היומי! 🎉💧');
+    } else {
+      toast.success(`+${amount} מ"ל נוספו 💧`);
+    }
   };
 
   const removeLastEntry = () => {

@@ -1,10 +1,10 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
+import SplashScreen from '../screens/SplashScreen';
 
 import HomeScreen from '../screens/HomeScreen';
 import WorkoutScreen from '../screens/WorkoutScreen';
@@ -75,11 +75,7 @@ export default function AppNavigator() {
   const { isLoggedIn, loading } = useAuth();
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
+    return <SplashScreen />;
   }
 
   return (

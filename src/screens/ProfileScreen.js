@@ -3,9 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert 
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
+import { FadeInView } from '../components/AnimatedCard';
 
 export default function ProfileScreen() {
   const { user, userProfile, updateProfile, logout } = useAuth();
+  const toast = useToast();
   const [profile, setProfile] = useState({
     name: '',
     age: '',
@@ -43,9 +46,9 @@ export default function ProfileScreen() {
   const saveProfile = async () => {
     try {
       await updateProfile(profile);
-      Alert.alert('נשמר!', 'הפרטים שלך עודכנו בהצלחה');
+      toast.success('הפרטים נשמרו בהצלחה! ✅');
     } catch (e) {
-      Alert.alert('שגיאה', 'לא הצלחנו לשמור, נסה שוב');
+      toast.error('לא הצלחנו לשמור, נסה שוב');
     }
   };
 

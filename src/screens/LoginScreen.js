@@ -1,27 +1,31 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { loginUser } from '../services/authService';
 import { signInWithGoogleWeb } from '../services/googleAuthService';
+import { useToast } from '../components/Toast';
+import { FadeInView } from '../components/AnimatedCard';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('שגיאה', 'יש למלא אימייל וסיסמה');
+      toast.error('יש למלא אימייל וסיסמה');
       return;
     }
     setLoading(true);
     try {
       await loginUser(email.trim(), password);
+      toast.success('התחברת בהצלחה! 🎉');
     } catch (error) {
       let msg = 'שגיאה בהתחברות, נסה שוב';
       if (error.code === 'auth/user-not-found') msg = 'משתמש לא נמצא';
@@ -29,7 +33,7 @@ export default function LoginScreen({ navigation }) {
       else if (error.code === 'auth/invalid-email') msg = 'כתובת אימייל לא תקינה';
       else if (error.code === 'auth/too-many-requests') msg = 'יותר מדי ניסיונות, נסה מאוחר יותר';
       else if (error.code === 'auth/invalid-credential') msg = 'אימייל או סיסמה שגויים';
-      Alert.alert('שגיאה', msg);
+      toast.error(msg);
     }
     setLoading(false);
   };
@@ -39,15 +43,13 @@ export default function LoginScreen({ navigation }) {
     try {
       if (Platform.OS === 'web') {
         await signInWithGoogleWeb();
+        toast.success('התחברת עם Google! 🎉');
       } else {
-        Alert.alert(
-          'בקרוב',
-          'התחברות Google זמינה כרגע רק בגרסת ה-Web. תוכל להתחבר עם אימייל וסיסמה.'
-        );
+        toast.info('התחברות Google זמינה כרגע רק בדפדפן');
       }
     } catch (error) {
       if (error.code !== 'auth/popup-closed-by-user') {
-        Alert.alert('שגיאה', 'לא הצלחנו להתחבר עם Google. נסה שוב או השתמש באימייל.');
+        toast.error('לא הצלחנו להתחבר עם Google');
       }
     }
     setLoading(false);
@@ -59,13 +61,15 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.logoSection}>
-          <MaterialIcons name="fitness-center" size={64} color={COLORS.primary} />
+        <FadeInView style={styles.logoSection}>
+          <View style={styles.logoIconBg}>
+            <MaterialIcons name="fitness-center" size={56} color={COLORS.primary} />
+          </View>
           <Text style={styles.logoText}>SMIT GYM</Text>
           <Text style={styles.subtitle}>המאמן האישי שלך</Text>
-        </View>
+        </FadeInView>
 
-        <View style={styles.form}>
+        <FadeInView delay={200} style={styles.form}>
           <Text style={styles.formTitle}>התחברות</Text>
 
           <View style={styles.inputContainer}>
@@ -140,7 +144,7 @@ export default function LoginScreen({ navigation }) {
           >
             <Text style={styles.registerButtonText}>צור חשבון חדש</Text>
           </TouchableOpacity>
-        </View>
+        </FadeInView>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -159,6 +163,22 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: 'center',
     marginBottom: SPACING.xxl,
+  },
+  logoIconBg: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.surface,
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoText: {
     color: COLORS.primary,

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import SimpleChart from '../components/SimpleChart';
+import { useToast } from '../components/Toast';
 
 export default function WeightTrackingScreen({ navigation }) {
+  const toast = useToast();
   const [currentWeight, setCurrentWeight] = useState(70.0);
   const [weightHistory, setWeightHistory] = useState([
     { date: '05/05/26', time: '08:10', weight: 70.0 },
@@ -24,7 +26,7 @@ export default function WeightTrackingScreen({ navigation }) {
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     setWeightHistory((prev) => [{ date, time, weight: currentWeight }, ...prev]);
-    Alert.alert('נשמר!', `המשקל ${currentWeight} ק"ג נשמר בהצלחה`);
+    toast.success(`המשקל ${currentWeight} ק"ג נשמר בהצלחה ⚖️`);
   };
 
   return (

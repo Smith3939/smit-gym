@@ -80,7 +80,7 @@ export default function NutritionScreen({ navigation }) {
   const quickActions = [
     { title: 'תפריט התזונה שלי', icon: 'restaurant-menu', action: () => {} },
     { title: 'ערכים יומיים', icon: 'bar-chart', action: () => {} },
-    { title: 'מעקב מים', icon: 'water-drop', action: () => {} },
+    { title: 'מעקב מים', icon: 'water-drop', action: () => navigation?.navigate?.('WaterTracking') },
     { title: 'רשימת קניות', icon: 'shopping-cart', action: () => {} },
   ];
 
