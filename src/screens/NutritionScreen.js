@@ -1,10 +1,65 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
-import { MEAL_TYPES, FOOD_CATEGORIES } from '../data/nutrition';
+import { useAuth } from '../context/AuthContext';
+import { calculateNutritionPlan } from '../services/nutritionEngine';
+import { generateDailyPlan, getAlternatives } from '../services/mealPlanGenerator';
+import { requestFoodSwap } from '../services/aiNutritionService';
 
-function MealCard({ meal, isExpanded, onToggle }) {
+// ─── Macro Summary Card ─────────────────────────────────────────────────────
+function MacroSummaryCard({ nutritionPlan }) {
+  if (!nutritionPlan) return null;
+
+  const { targetCalories, macros, bmi } = nutritionPlan;
+
+  return (
+    <View style={styles.macroCard}>
+      <View style={styles.macroHeader}>
+        <Text style={styles.macroTitle}>היעדים היומיים שלך</Text>
+        <View style={styles.bmiTag}>
+          <Text style={styles.bmiText}>BMI: {bmi.value}</Text>
+        </View>
+      </View>
+
+      <View style={styles.calorieRow}>
+        <MaterialIcons name="local-fire-department" size={24} color={COLORS.primary} />
+        <Text style={styles.calorieText}>{targetCalories}</Text>
+        <Text style={styles.calorieLabel}>קלוריות ליום</Text>
+      </View>
+
+      <View style={styles.macroRow}>
+        <MacroItem label="חלבון" value={macros.protein} unit="ג" color="#4CAF50" />
+        <MacroItem label="פחמימות" value={macros.carbs} unit="ג" color="#FF9800" />
+        <MacroItem label="שומן" value={macros.fat} unit="ג" color="#F44336" />
+      </View>
+    </View>
+  );
+}
+
+function MacroItem({ label, value, unit, color }) {
+  return (
+    <View style={styles.macroItem}>
+      <View style={[styles.macroIndicator, { backgroundColor: color }]} />
+      <Text style={styles.macroValue}>{value}{unit}</Text>
+      <Text style={styles.macroLabel}>{label}</Text>
+    </View>
+  );
+}
+
+// ─── Meal Card Component ────────────────────────────────────────────────────
+function MealCard({ meal, isExpanded, onToggle, onSwapFood, swapping }) {
+  if (!meal || !meal.slots) return null;
+
   return (
     <View style={styles.mealCard}>
       <TouchableOpacity style={styles.mealHeader} onPress={onToggle} activeOpacity={0.7}>
@@ -13,76 +68,274 @@ function MealCard({ meal, isExpanded, onToggle }) {
           size={28}
           color={COLORS.primary}
         />
-        <Text style={styles.mealTitle}>
-          {meal.name} | {meal.defaultCalories} קלוריות (ח)
-        </Text>
+        <View style={styles.mealHeaderContent}>
+          <Text style={styles.mealTitle}>{meal.name}</Text>
+          <Text style={styles.mealCalories}>{meal.targetCalories} קלוריות</Text>
+        </View>
+        <MaterialIcons name={meal.icon} size={24} color={COLORS.primary} />
       </TouchableOpacity>
 
       {isExpanded && (
         <View style={styles.mealContent}>
-          <Text style={styles.mealDescription}>
-            לבחירתך אחת מהאופציות הבאות:
-          </Text>
-          {meal.id === 'breakfast' && (
-            <View style={styles.optionsList}>
-              <Text style={styles.optionItem}>• גביע קוטג׳ 3% (250 ג)</Text>
-              <Text style={styles.optionItem}>• גביע גבינה 3%</Text>
-              <Text style={styles.optionItem}>• מעדן חלבון פרו (פס אפור) + 50 קלוריות חופשיות נוספות</Text>
-              <Text style={styles.optionItem}>• מלפפון (אופציונלי)</Text>
-            </View>
-          )}
-          {meal.id === 'lunch' && (
-            <View style={styles.optionsList}>
-              <Text style={styles.sectionTitle}>300 קלוריות של פחמימה:</Text>
-              <Text style={styles.optionItem}>• פסטה 160 גרם, אפשר עם רוטב עגבניות ביתי</Text>
-              <Text style={styles.optionItem}>• או אורז 220 ג</Text>
-              <Text style={styles.optionItem}>• או פירה 320 ג</Text>
-              <Text style={styles.optionItem}>• או 3 פיתות / פרוסות כוסמין</Text>
-              <Text style={styles.sectionTitle}>350-400 קלוריות של חלבון רזה:</Text>
-              <Text style={styles.optionItem}>• 250 ג חזה עוף בספריי שמן בלבד</Text>
-              <Text style={styles.optionItem}>• או 250 ג בשר שייטל</Text>
-              <Text style={styles.optionItem}>• או 220 גרם פרגית בספריי שמן בלבד</Text>
-              <Text style={styles.optionItem}>• או 220 ג דג מסוג טונה / אמנון</Text>
-            </View>
-          )}
-          {meal.id === 'pre_workout' && (
-            <View style={styles.optionsList}>
-              <Text style={styles.optionItem}>תבחר 1 מהאופציות הבאות:</Text>
-              <Text style={styles.optionItem}>• בננה</Text>
-              <Text style={styles.optionItem}>• תפוח גדול</Text>
-              <Text style={styles.optionItem}>• פרוסת לחם לבן + ממרח לבחירתך</Text>
-              <Text style={styles.optionItem}>• חטיף אנרגיה עד 100 קל</Text>
-              <Text style={styles.optionItem}>• 3 תמרים</Text>
-              <Text style={styles.optionItem}>• קפה / פרה וורקאאוט / קפאין</Text>
-            </View>
-          )}
-          {meal.id === 'dinner' && (
-            <View style={styles.optionsList}>
-              <Text style={styles.optionItem}>אופציה א - כמו כל האופציות בארוחת הצהריים</Text>
-              <Text style={styles.optionItem}>אופציה ב - פיצה כוסמין קוטג</Text>
-              <Text style={styles.optionItem}>אופציה ג - טוסט כוסמין וגבינה צהובה דלת שומן</Text>
-            </View>
-          )}
-          {meal.id === 'free_calories' && (
-            <View style={styles.optionsList}>
-              <Text style={styles.optionItem}>• קלוריות שאתה יכול לאכול איתן מה שאתה רוצה, מתי שאתה רוצה, אסור לוותר עליהן!</Text>
-            </View>
-          )}
+          {meal.slots.map((slot, slotIndex) => (
+            <SlotSection
+              key={slotIndex}
+              slot={slot}
+              mealId={meal.id}
+              slotIndex={slotIndex}
+              onSwap={onSwapFood}
+              swapping={swapping}
+            />
+          ))}
         </View>
       )}
     </View>
   );
 }
 
-export default function NutritionScreen({ navigation }) {
-  const [expandedMeal, setExpandedMeal] = useState(null);
+// ─── Slot Section (food category within a meal) ─────────────────────────────
+function SlotSection({ slot, mealId, slotIndex, onSwap, swapping }) {
+  const selectedOption = slot.options?.[slot.selectedIndex];
+  if (!selectedOption && slot.optional) return null;
 
-  const quickActions = [
-    { title: 'תפריט התזונה שלי', icon: 'restaurant-menu', action: () => {} },
-    { title: 'ערכים יומיים', icon: 'bar-chart', action: () => {} },
-    { title: 'מעקב מים', icon: 'water-drop', action: () => navigation?.navigate?.('WaterTracking') },
-    { title: 'רשימת קניות', icon: 'shopping-cart', action: () => {} },
-  ];
+  return (
+    <View style={styles.slotSection}>
+      <View style={styles.slotHeader}>
+        <TouchableOpacity
+          style={styles.swapButton}
+          onPress={() => onSwap(mealId, slotIndex, slot)}
+          disabled={swapping}
+        >
+          {swapping ? (
+            <ActivityIndicator size="small" color={COLORS.primary} />
+          ) : (
+            <MaterialIcons name="swap-horiz" size={20} color={COLORS.primary} />
+          )}
+        </TouchableOpacity>
+        <Text style={styles.slotLabel}>{slot.label} | {slot.targetCalories} קל</Text>
+      </View>
+
+      {selectedOption ? (
+        <View style={styles.foodItem}>
+          <Text style={styles.foodName}>{selectedOption.name}</Text>
+          <Text style={styles.foodAmount}>
+            {selectedOption.amount} {selectedOption.unit}
+          </Text>
+          <View style={styles.foodMacros}>
+            <Text style={styles.foodMacroText}>ח: {selectedOption.protein}ג</Text>
+            <Text style={styles.foodMacroText}>פ: {selectedOption.carbs}ג</Text>
+            <Text style={styles.foodMacroText}>ש: {selectedOption.fat}ג</Text>
+            <Text style={styles.foodMacroText}>{selectedOption.calories} קל</Text>
+          </View>
+        </View>
+      ) : (
+        <Text style={styles.emptySlot}>אין אפשרויות זמינות</Text>
+      )}
+
+      {/* Show other options as smaller alternatives */}
+      {slot.options && slot.options.length > 1 && (
+        <View style={styles.alternativesList}>
+          <Text style={styles.alternativesTitle}>אפשרויות נוספות:</Text>
+          {slot.options
+            .filter((_, idx) => idx !== slot.selectedIndex)
+            .slice(0, 3)
+            .map((opt, idx) => (
+              <Text key={idx} style={styles.alternativeItem}>
+                • {opt.name} ({opt.amount} {opt.unit})
+              </Text>
+            ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── Swap Modal ─────────────────────────────────────────────────────────────
+function SwapModal({ visible, onClose, alternatives, onSelect, reasoning }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={onClose}>
+              <MaterialIcons name="close" size={24} color={COLORS.text} />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>החלפת מזון</Text>
+            <MaterialIcons name="swap-horiz" size={24} color={COLORS.primary} />
+          </View>
+
+          {reasoning && (
+            <Text style={styles.modalReasoning}>{reasoning}</Text>
+          )}
+
+          <ScrollView style={styles.modalScroll}>
+            {alternatives.map((alt, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.alternativeCard}
+                onPress={() => onSelect(alt, index)}
+              >
+                <View style={styles.altCardHeader}>
+                  <Text style={styles.altName}>{alt.name}</Text>
+                  <Text style={styles.altAmount}>{alt.amount} {alt.unit}</Text>
+                </View>
+                <View style={styles.altMacros}>
+                  <Text style={styles.altMacroText}>{alt.calories} קל</Text>
+                  <Text style={styles.altMacroText}>ח: {alt.protein}ג</Text>
+                  <Text style={styles.altMacroText}>פ: {alt.carbs}ג</Text>
+                  <Text style={styles.altMacroText}>ש: {alt.fat}ג</Text>
+                </View>
+                {alt.reason && (
+                  <Text style={styles.altReason}>{alt.reason}</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Main Nutrition Screen ──────────────────────────────────────────────────
+export default function NutritionScreen({ navigation }) {
+  const { userProfile } = useAuth();
+  const [nutritionPlan, setNutritionPlan] = useState(null);
+  const [dailyMealPlan, setDailyMealPlan] = useState(null);
+  const [expandedMeal, setExpandedMeal] = useState(null);
+  const [swapping, setSwapping] = useState(false);
+  const [swapModal, setSwapModal] = useState({
+    visible: false,
+    alternatives: [],
+    reasoning: '',
+    mealId: null,
+    slotIndex: null,
+  });
+
+  // Calculate nutrition plan when user profile changes
+  useEffect(() => {
+    if (userProfile) {
+      const plan = calculateNutritionPlan(userProfile);
+      setNutritionPlan(plan);
+
+      // Generate daily meal plan from calculated targets
+      const mealPlan = generateDailyPlan(plan.meals);
+      setDailyMealPlan(mealPlan);
+    }
+  }, [userProfile]);
+
+  // Handle food swap request
+  const handleSwapFood = useCallback(async (mealId, slotIndex, slot) => {
+    const selectedOption = slot.options?.[slot.selectedIndex];
+    if (!selectedOption) return;
+
+    setSwapping(true);
+
+    try {
+      // Try AI-powered swap first
+      const result = await requestFoodSwap(
+        {
+          id: selectedOption.foodId,
+          name: selectedOption.name,
+          category: slot.category,
+          amount: selectedOption.amount,
+          per100g: selectedOption.unit === 'גרם',
+        },
+        slot.targetCalories,
+        userProfile
+      );
+
+      if (result && result.alternatives && result.alternatives.length > 0) {
+        setSwapModal({
+          visible: true,
+          alternatives: result.alternatives,
+          reasoning: result.reasoning || '',
+          mealId,
+          slotIndex,
+        });
+      } else {
+        // Fallback to local alternatives
+        const localAlts = getAlternatives(selectedOption.foodId, slot.category, slot.targetCalories);
+        setSwapModal({
+          visible: true,
+          alternatives: localAlts,
+          reasoning: 'חלופות מהמאגר המקומי',
+          mealId,
+          slotIndex,
+        });
+      }
+    } catch (error) {
+      console.error('Swap error:', error);
+      // Fallback
+      const localAlts = getAlternatives(selectedOption.foodId, slot.category, slot.targetCalories);
+      setSwapModal({
+        visible: true,
+        alternatives: localAlts,
+        reasoning: 'חלופות מהמאגר המקומי',
+        mealId,
+        slotIndex,
+      });
+    } finally {
+      setSwapping(false);
+    }
+  }, [userProfile]);
+
+  // Handle selecting an alternative from the modal
+  const handleSelectAlternative = useCallback((alternative, index) => {
+    const { mealId, slotIndex } = swapModal;
+
+    setDailyMealPlan((prev) => {
+      const updated = { ...prev };
+      const meal = { ...updated[mealId] };
+      const slots = [...meal.slots];
+      const slot = { ...slots[slotIndex] };
+
+      // Add the selected alternative as the new first option and select it
+      const newOption = {
+        foodId: alternative.foodId,
+        name: alternative.name,
+        amount: alternative.amount,
+        unit: alternative.unit,
+        calories: alternative.calories,
+        protein: alternative.protein,
+        carbs: alternative.carbs,
+        fat: alternative.fat,
+      };
+
+      // Put new selection at the beginning
+      slot.options = [newOption, ...slot.options.filter((o) => o.foodId !== alternative.foodId)];
+      slot.selectedIndex = 0;
+      slots[slotIndex] = slot;
+      meal.slots = slots;
+      updated[mealId] = meal;
+
+      return updated;
+    });
+
+    setSwapModal({ visible: false, alternatives: [], reasoning: '', mealId: null, slotIndex: null });
+    Alert.alert('✅ הוחלף!', `${alternative.name} - ${alternative.amount} ${alternative.unit}`);
+  }, [swapModal]);
+
+  // If no profile data yet
+  if (!userProfile || !userProfile.weight || !userProfile.height) {
+    return (
+      <View style={styles.emptyContainer}>
+        <MaterialIcons name="person-outline" size={64} color={COLORS.textMuted} />
+        <Text style={styles.emptyTitle}>עדכן את הפרופיל שלך</Text>
+        <Text style={styles.emptySubtext}>
+          כדי לחשב את התפריט המותאם אישית, נדרשים נתוני משקל, גובה וגיל
+        </Text>
+        <TouchableOpacity
+          style={styles.goToProfileButton}
+          onPress={() => navigation?.navigate?.('Profile')}
+        >
+          <Text style={styles.goToProfileText}>עבור לפרופיל</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const mealOrder = ['breakfast', 'lunch', 'pre_workout', 'dinner', 'free_calories'];
 
   return (
     <ScrollView style={styles.container}>
@@ -91,37 +344,54 @@ export default function NutritionScreen({ navigation }) {
         <Text style={styles.title}>תזונה</Text>
       </View>
 
-      <View style={styles.actionsGrid}>
-        {quickActions.map((action, index) => (
-          <TouchableOpacity key={index} style={styles.actionCard} onPress={action.action}>
-            <MaterialIcons name={action.icon} size={36} color={COLORS.primary} />
-            <Text style={styles.actionText}>{action.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Macro Summary */}
+      <MacroSummaryCard nutritionPlan={nutritionPlan} />
 
+      {/* AI Consultation Button */}
       <TouchableOpacity
-        style={styles.aiSuggestionButton}
+        style={styles.aiButton}
         onPress={() => navigation?.navigate?.('AIChat')}
       >
         <MaterialIcons name="smart-toy" size={20} color={COLORS.primary} />
-        <Text style={styles.aiSuggestionText}>רוצה להחליף מזון? שאל את ה-AI</Text>
+        <Text style={styles.aiButtonText}>התייעץ עם ה-AI לגבי התפריט</Text>
       </TouchableOpacity>
 
-      <Text style={styles.sectionHeader}>תפריט יומי</Text>
+      {/* Daily Meal Plan */}
+      <Text style={styles.sectionHeader}>התפריט היומי שלך</Text>
+      <Text style={styles.sectionSubtext}>
+        לחץ על ↔ כדי להחליף מזון עם המלצת AI
+      </Text>
 
-      {MEAL_TYPES.map((meal) => (
-        <MealCard
-          key={meal.id}
-          meal={meal}
-          isExpanded={expandedMeal === meal.id}
-          onToggle={() => setExpandedMeal(expandedMeal === meal.id ? null : meal.id)}
-        />
-      ))}
+      {dailyMealPlan && mealOrder.map((mealId) => {
+        const meal = dailyMealPlan[mealId];
+        if (!meal) return null;
+        return (
+          <MealCard
+            key={mealId}
+            meal={meal}
+            isExpanded={expandedMeal === mealId}
+            onToggle={() => setExpandedMeal(expandedMeal === mealId ? null : mealId)}
+            onSwapFood={handleSwapFood}
+            swapping={swapping}
+          />
+        );
+      })}
+
+      {/* Swap Modal */}
+      <SwapModal
+        visible={swapModal.visible}
+        onClose={() => setSwapModal({ ...swapModal, visible: false })}
+        alternatives={swapModal.alternatives}
+        reasoning={swapModal.reasoning}
+        onSelect={handleSelectAlternative}
+      />
+
+      <View style={{ height: 40 }} />
     </ScrollView>
   );
 }
 
+// ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -138,33 +408,85 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: SPACING.sm,
   },
-  actionsGrid: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.md,
-  },
-  actionCard: {
-    width: '47%',
+
+  // Macro Summary
+  macroCard: {
     backgroundColor: COLORS.surface,
+    marginHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  macroHeader: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
-  actionText: {
+  macroTitle: {
     color: COLORS.text,
-    fontSize: FONTS.small,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: FONTS.medium,
+    fontWeight: 'bold',
   },
-  aiSuggestionButton: {
+  bmiTag: {
+    backgroundColor: COLORS.primaryDark,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  bmiText: {
+    color: COLORS.text,
+    fontSize: FONTS.tiny,
+    fontWeight: '600',
+  },
+  calorieRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  calorieText: {
+    color: COLORS.primary,
+    fontSize: FONTS.title,
+    fontWeight: 'bold',
+  },
+  calorieLabel: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.regular,
+  },
+  macroRow: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-around',
+  },
+  macroItem: {
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  macroIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  macroValue: {
+    color: COLORS.text,
+    fontSize: FONTS.medium,
+    fontWeight: 'bold',
+  },
+  macroLabel: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.tiny,
+  },
+
+  // AI Button
+  aiButton: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: SPACING.md,
-    marginTop: SPACING.md,
+    marginBottom: SPACING.md,
     padding: SPACING.md,
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
@@ -173,17 +495,28 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     gap: SPACING.sm,
   },
-  aiSuggestionText: {
+  aiButtonText: {
     color: COLORS.primary,
     fontSize: FONTS.small,
+    fontWeight: '600',
   },
+
+  // Section
   sectionHeader: {
     color: COLORS.text,
     fontSize: FONTS.large,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginVertical: SPACING.lg,
+    marginTop: SPACING.md,
   },
+  sectionSubtext: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+    textAlign: 'center',
+    marginBottom: SPACING.md,
+  },
+
+  // Meal Card
   mealCard: {
     backgroundColor: COLORS.surface,
     marginHorizontal: SPACING.md,
@@ -198,37 +531,206 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     backgroundColor: COLORS.card,
   },
+  mealHeaderContent: {
+    flex: 1,
+    alignItems: 'flex-end',
+    marginRight: SPACING.sm,
+  },
   mealTitle: {
     color: COLORS.text,
     fontSize: FONTS.regular,
     fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'right',
+  },
+  mealCalories: {
+    color: COLORS.primary,
+    fontSize: FONTS.tiny,
+    marginTop: 2,
   },
   mealContent: {
     padding: SPACING.md,
   },
-  mealDescription: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.small,
-    textAlign: 'right',
+
+  // Slot Section
+  slotSection: {
+    marginBottom: SPACING.md,
+    paddingBottom: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  slotHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: SPACING.sm,
   },
-  optionsList: {
-    gap: SPACING.xs,
-  },
-  optionItem: {
-    color: COLORS.text,
-    fontSize: FONTS.small,
-    textAlign: 'right',
-    lineHeight: 22,
-  },
-  sectionTitle: {
+  slotLabel: {
     color: COLORS.primary,
     fontSize: FONTS.small,
     fontWeight: 'bold',
+  },
+  swapButton: {
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.xs,
+  },
+
+  // Food Item
+  foodItem: {
+    backgroundColor: COLORS.card,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING.sm,
+  },
+  foodName: {
+    color: COLORS.text,
+    fontSize: FONTS.regular,
+    fontWeight: '600',
     textAlign: 'right',
+  },
+  foodAmount: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.small,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+  foodMacros: {
+    flexDirection: 'row-reverse',
+    gap: SPACING.md,
+    marginTop: SPACING.xs,
+  },
+  foodMacroText: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+  },
+
+  // Alternatives
+  alternativesList: {
     marginTop: SPACING.sm,
+    paddingRight: SPACING.sm,
+  },
+  alternativesTitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+    textAlign: 'right',
     marginBottom: SPACING.xs,
+  },
+  alternativeItem: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.tiny,
+    textAlign: 'right',
+    lineHeight: 20,
+  },
+  emptySlot: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.small,
+    textAlign: 'center',
+    padding: SPACING.md,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: COLORS.overlay,
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: BORDER_RADIUS.xl,
+    borderTopRightRadius: BORDER_RADIUS.xl,
+    maxHeight: '70%',
+    padding: SPACING.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.large,
+    fontWeight: 'bold',
+  },
+  modalReasoning: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.small,
+    textAlign: 'right',
+    marginBottom: SPACING.md,
+    lineHeight: 22,
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  alternativeCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  altCardHeader: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  altName: {
+    color: COLORS.text,
+    fontSize: FONTS.regular,
+    fontWeight: '600',
+  },
+  altAmount: {
+    color: COLORS.primary,
+    fontSize: FONTS.small,
+    fontWeight: '600',
+  },
+  altMacros: {
+    flexDirection: 'row-reverse',
+    gap: SPACING.md,
+    marginTop: SPACING.sm,
+  },
+  altMacroText: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+  },
+  altReason: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.tiny,
+    textAlign: 'right',
+    marginTop: SPACING.xs,
+    fontStyle: 'italic',
+  },
+
+  // Empty State
+  emptyContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.large,
+    fontWeight: 'bold',
+    marginTop: SPACING.md,
+  },
+  emptySubtext: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.regular,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+    lineHeight: 24,
+  },
+  goToProfileButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: SPACING.lg,
+  },
+  goToProfileText: {
+    color: COLORS.text,
+    fontSize: FONTS.regular,
+    fontWeight: 'bold',
   },
 });
