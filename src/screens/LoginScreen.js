@@ -15,7 +15,7 @@ import { signInWithGoogleWeb } from '../services/googleAuthService';
 import { useToast } from '../components/Toast';
 import { FadeInView } from '../components/AnimatedCard';
 import GlassCard from '../components/GlassCard';
-import ParticleBackground from '../components/ParticleBackground';
+import AuroraBackground from '../components/AuroraBackground';
 
 const { width } = Dimensions.get('window');
 
@@ -106,24 +106,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
-        style={StyleSheet.absoluteFillObject}
-      />
-
-      <View style={styles.glowBg}>
-        <Svg width={width} height={width}>
-          <Defs>
-            <RadialGradient id="loginGlow" cx="50%" cy="50%" r="50%">
-              <Stop offset="0%" stopColor={COLORS.primary} stopOpacity="0.25" />
-              <Stop offset="100%" stopColor={COLORS.primary} stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Circle cx="50%" cy="50%" r="50%" fill="url(#loginGlow)" />
-        </Svg>
-      </View>
-
-      <ParticleBackground count={10} color={COLORS.primary} />
+      <AuroraBackground intensity={0.7} />
 
       <KeyboardAvoidingView
         style={styles.kav}
