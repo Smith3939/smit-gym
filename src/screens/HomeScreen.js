@@ -275,6 +275,32 @@ export default function HomeScreen({ navigation }) {
           </View>
         </GlassCard>
 
+        {/* Recipe generator CTA - NEW */}
+        <GlassCard
+          onPress={() => navigation.navigate('RecipeGenerator')}
+          gradientColors={['rgba(255,107,53,0.2)', 'rgba(255,182,39,0.1)']}
+          borderColor="rgba(255,107,53,0.4)"
+          delay={1150}
+          style={styles.aiCard}
+          glow
+        >
+          <View style={styles.aiCardInner}>
+            <View style={[styles.aiIconBg, { backgroundColor: 'rgba(255,107,53,0.2)' }]}>
+              <MaterialIcons name="menu-book" size={36} color={COLORS.primary} />
+            </View>
+            <View style={styles.aiContent}>
+              <Text style={styles.aiTitle}>מתכונים חכמים</Text>
+              <Text style={styles.aiSubtitle}>קציצות, שווארמה, מעורב - לפי הקלוריות שלך</Text>
+            </View>
+            <View style={styles.newBadgeContainer}>
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>חדש</Text>
+              </View>
+              <MaterialIcons name="chevron-left" size={28} color={COLORS.primary} />
+            </View>
+          </View>
+        </GlassCard>
+
         {/* Exercise library link */}
         <GlassCard
           onPress={() => navigation.navigate('ExerciseLibrary')}
@@ -568,6 +594,23 @@ const styles = StyleSheet.create({
   },
   libraryCard: {
     padding: 0,
+  },
+  newBadgeContainer: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 4,
+  },
+  newBadge: {
+    backgroundColor: COLORS.error,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  newBadgeText: {
+    color: COLORS.text,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   libraryInner: {
     flexDirection: 'row-reverse',

@@ -18,6 +18,7 @@ import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ExerciseLibraryScreen from '../screens/ExerciseLibraryScreen';
 import WaterTrackingScreen from '../screens/WaterTrackingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import RecipeGeneratorScreen from '../screens/RecipeGeneratorScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -87,6 +88,7 @@ export default function AppNavigator() {
           <Stack.Screen name="ExerciseLibrary" component={ExerciseLibraryScreen} />
           <Stack.Screen name="WaterTracking" component={WaterTrackingScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="RecipeGenerator" component={RecipeGeneratorScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
