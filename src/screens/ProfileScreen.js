@@ -5,6 +5,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { FadeInView } from '../components/AnimatedCard';
+import AuroraBackground from '../components/AuroraBackground';
 import { calculateBMI, calculateBMR, calculateTDEE, calculateTargetCalories } from '../services/nutritionEngine';
 
 export default function ProfileScreen({ navigation }) {
@@ -77,6 +78,8 @@ export default function ProfileScreen({ navigation }) {
   };
 
   return (
+    <View style={{ flex: 1 }}>
+      <AuroraBackground intensity={0.4} />
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatar}>
@@ -221,13 +224,14 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: 'transparent',
     paddingTop: SPACING.xxl,
   },
   header: {

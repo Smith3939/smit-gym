@@ -4,9 +4,11 @@ import {
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS } from '../config/theme';
 import { sendMessageToAI } from '../services/aiService';
 import { useAuth } from '../context/AuthContext';
+import AuroraBackground from '../components/AuroraBackground';
 
 const INITIAL_MESSAGE = {
   id: '1',
@@ -63,14 +65,26 @@ export default function AIChatScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={90}
-    >
+    <View style={{ flex: 1 }}>
+      <AuroraBackground intensity={0.4} />
+
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={90}
+      >
       <View style={styles.header}>
-        <MaterialIcons name="smart-toy" size={28} color={COLORS.primary} />
+        <LinearGradient
+          colors={[COLORS.tertiary, COLORS.secondary]}
+          style={styles.headerIconBg}
+        >
+          <MaterialIcons name="auto-awesome" size={22} color={COLORS.text} />
+        </LinearGradient>
         <Text style={styles.title}>המאמן AI שלך</Text>
+        <View style={styles.aiStatus}>
+          <View style={styles.aiStatusDot} />
+          <Text style={styles.aiStatusText}>חי</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -150,14 +164,44 @@ export default function AIChatScreen() {
           onSubmitEditing={() => sendMessage(inputText)}
         />
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: 'transparent',
+  },
+  headerIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiStatus: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.3)',
+  },
+  aiStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.success,
+  },
+  aiStatusText: {
+    color: COLORS.success,
+    fontSize: 10,
+    fontWeight: '800',
   },
   header: {
     flexDirection: 'row-reverse',

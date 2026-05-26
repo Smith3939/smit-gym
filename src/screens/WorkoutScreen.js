@@ -18,6 +18,7 @@ import GlassCard from '../components/GlassCard';
 import GeometricPattern from '../components/GeometricPattern';
 import ProgressRing from '../components/ProgressRing';
 import { FadeInView } from '../components/AnimatedCard';
+import AuroraBackground from '../components/AuroraBackground';
 import { useAuth } from '../context/AuthContext';
 import {
   generateProgram,
@@ -337,10 +338,7 @@ export default function WorkoutScreen() {
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <AuroraBackground intensity={0.5} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
@@ -357,8 +355,8 @@ export default function WorkoutScreen() {
         {/* Hero Workout Card */}
         <GlassCard
           delay={100}
-          gradientColors={['rgba(255,107,53,0.25)', 'rgba(229,75,31,0.1)']}
-          borderColor="rgba(255,107,53,0.3)"
+          gradientColors={['rgba(255,77,143,0.25)', 'rgba(167,139,250,0.12)']}
+          borderColor="rgba(255,77,143,0.3)"
           style={styles.heroCard}
           glow
         >

@@ -20,6 +20,7 @@ import GlassCard from '../components/GlassCard';
 import GeometricPattern from '../components/GeometricPattern';
 import ProgressRing from '../components/ProgressRing';
 import { FadeInView } from '../components/AnimatedCard';
+import AuroraBackground from '../components/AuroraBackground';
 
 // ─── Macro Summary Card ─────────────────────────────────────────────────────
 function MacroSummaryCard({ nutritionPlan }) {
@@ -348,10 +349,7 @@ export default function NutritionScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <AuroraBackground intensity={0.45} />
 
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
@@ -396,7 +394,7 @@ export default function NutritionScreen({ navigation }) {
                     <Text style={[styles.macroValue, { color: COLORS.secondary }]}>{nutritionPlan.macros.carbs}ג</Text>
                     <Text style={styles.macroLabel}>פחמ׳</Text>
                   </View>
-                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,107,53,0.2)' }]}>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,77,143,0.2)' }]}>
                     <Text style={[styles.macroValue, { color: COLORS.primary }]}>{nutritionPlan.macros.fat}ג</Text>
                     <Text style={styles.macroLabel}>שומן</Text>
                   </View>

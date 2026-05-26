@@ -16,6 +16,7 @@ import GlassCard from '../components/GlassCard';
 import GeometricPattern from '../components/GeometricPattern';
 import ProgressRing from '../components/ProgressRing';
 import { FadeInView } from '../components/AnimatedCard';
+import AuroraBackground from '../components/AuroraBackground';
 import { useToast } from '../components/Toast';
 
 const { width } = Dimensions.get('window');
@@ -225,7 +226,7 @@ function RecipeDetail({ recipe, calorieBudget, onClose }) {
                   </Text>
                   <Text style={styles.budgetMacroLabel}>פחמ׳</Text>
                 </View>
-                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(255,107,53,0.15)' }]}>
+                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(255,77,143,0.15)' }]}>
                   <Text style={[styles.budgetMacroValue, { color: COLORS.primary }]}>
                     {portionData.totalFat}ג
                   </Text>
@@ -323,10 +324,7 @@ export default function RecipeGeneratorScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <LinearGradient
-        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <AuroraBackground intensity={0.5} />
 
       <ScrollView
         style={styles.container}
@@ -355,8 +353,8 @@ export default function RecipeGeneratorScreen({ navigation }) {
 
         {/* Calorie Budget Input */}
         <GlassCard
-          gradientColors={['rgba(255,107,53,0.15)', 'rgba(255,182,39,0.08)']}
-          borderColor="rgba(255,107,53,0.3)"
+          gradientColors={['rgba(255,77,143,0.15)', 'rgba(251,191,36,0.08)']}
+          borderColor="rgba(255,77,143,0.3)"
           delay={100}
           style={styles.budgetInputCard}
         >
