@@ -2,6 +2,35 @@
 
 כל השינויים החשובים בפרויקט מפורטים כאן.
 
+## [1.5.0] - Launch-Readiness Audit & Fixes
+**תאריך:** 2026-06
+
+בדיקת QA מקיפה (6 סוכנים על הקוד + בדיקה חיה במובייל) ותיקון כל החוסמים שנמצאו.
+
+### 🔐 אבטחה ו-AI
+- מפתח Claude עבר לקובץ אחד מאובטח `src/config/apiKeys.js` (gitignored - לא נשמר ב-GitHub)
+- `src/services/claudeClient.js` חדש: נקודת קריאה אחת, אימות מפתח, timeout (20ש'), נפילה חכמה ל-fallback מקומי כשאין מפתח
+- 3 שירותי ה-AI (chat/nutrition/workout) עברו דרכו
+- תווית "חי" מוצגת רק כשמחובר מפתח אמיתי - אחרת "בסיסי" (לא מטעה)
+- "גוון עם AI" קיבל fallback מקומי (היה כפתור מת)
+
+### 📱 מובייל
+- `SafeAreaProvider` ב-App.js + `useSafeAreaInsets` (tab bar לא מתנגש עם פס הבית)
+- RTL הועבר ל-index.js (entry point - כיוון נכון מהרגע הראשון)
+- `KeyboardAvoidingView` במסכי אימון ומתכונים
+
+### 💾 שמירה
+- כפתור "סיים אימון" שומר את האימון + הסטים ל-Firestore (היה מת)
+
+### 📦 הכנה לחנות
+- `app.json`: שם "Smit Gym", אייקון/splash כהה, bundle ID, גרסאות
+- `eas.json`: קונפיג בנייה (development/preview/production)
+- `firestore.rules`: כללי אבטחה (משתמש רואה רק את הנתונים שלו) - מוכן לפריסה
+
+### ✨ UX
+- כפתור Google מוסתר במובייל (עובד רק ב-web)
+- hitSlop לכפתורים קטנים, מודל ריק ב"קלוריות חופשיות" תוקן, עיגול כמויות לחצי יחידה
+
 ## [1.4.0] - Modern Aurora Theme + Recipe Generator
 **תאריך:** 2026-05-26
 
