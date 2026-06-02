@@ -10,6 +10,8 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +22,8 @@ import ProgressRing from '../components/ProgressRing';
 import { FadeInView } from '../components/AnimatedCard';
 import AuroraBackground from '../components/AuroraBackground';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
+import { saveWorkoutLog } from '../services/authService';
 import {
   generateProgram,
   getAvailableProgramTypes,
@@ -122,6 +126,7 @@ function ExerciseCard({ exercise, index, onSwap, onUpdateSet, setLogs, swapping 
       <View style={styles.exerciseHeader}>
         <TouchableOpacity
           style={styles.swapBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => onSwap(exercise, index)}
           disabled={swapping || exercise.isWarmup || exercise.isCardio}
         >
@@ -190,11 +195,13 @@ function ExerciseCard({ exercise, index, onSwap, onUpdateSet, setLogs, swapping 
 
 // ─── Main Workout Screen ────────────────────────────────────────────────────
 export default function WorkoutScreen() {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
+  const toast = useToast();
   const [program, setProgram] = useState(null);
   const [activeDay, setActiveDay] = useState(null);
   const [showProgramSelector, setShowProgramSelector] = useState(false);
   const [swapping, setSwapping] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [setLogs, setSetLogs] = useState({});
   const [swapModal, setSwapModal] = useState({
     visible: false,
@@ -318,6 +325,39 @@ export default function WorkoutScreen() {
     }));
   }, []);
 
+  // Finish workout - save the session + logged sets to Firestore
+  const handleFinishWorkout = useCallback(async () => {
+    if (!user) {
+      toast.error('יש להתחבר כדי לשמור אימון');
+      return;
+    }
+    const session = program?.sessions?.[activeDay];
+    if (!session) return;
+
+    setSaving(true);
+    try {
+      await saveWorkoutLog(user.uid, {
+        programName: program.name,
+        programType: program.type,
+        sessionName: session.name,
+        sessionKey: activeDay,
+        muscleGroups: session.muscleGroups || [],
+        exercises: session.exercises.map((ex, i) => ({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          sets: ex.sets,
+          reps: ex.reps,
+          logged: setLogs[`${ex.exerciseId}_${i}`] || {},
+        })),
+      });
+      toast.success('האימון נשמר! כל הכבוד 💪');
+      setSetLogs({});
+    } catch (e) {
+      toast.error('שמירת האימון נכשלה, נסה שוב');
+    }
+    setSaving(false);
+  }, [user, program, activeDay, setLogs, toast]);
+
   // If no program yet
   if (!program) {
     return (
@@ -340,7 +380,16 @@ export default function WorkoutScreen() {
     <View style={styles.root}>
       <AuroraBackground intensity={0.5} />
 
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <FadeInView style={styles.header}>
           <View style={styles.headerIconBg}>
@@ -482,15 +531,21 @@ export default function WorkoutScreen() {
       ))}
 
         {/* Finish Workout Button */}
-        <TouchableOpacity activeOpacity={0.85}>
+        <TouchableOpacity activeOpacity={0.85} onPress={handleFinishWorkout} disabled={saving}>
           <LinearGradient
             colors={GRADIENTS.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.finishButton}
           >
-            <MaterialIcons name="check-circle" size={24} color={COLORS.text} />
-            <Text style={styles.finishButtonText}>סיים אימון</Text>
+            {saving ? (
+              <ActivityIndicator color={COLORS.text} />
+            ) : (
+              <>
+                <MaterialIcons name="check-circle" size={24} color={COLORS.text} />
+                <Text style={styles.finishButtonText}>סיים ושמור אימון</Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 
@@ -513,6 +568,7 @@ export default function WorkoutScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  I18nManager, Dimensions,
+  Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
 } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
+import { isAIConnected } from '../services/aiService';
 import GlassCard from '../components/GlassCard';
 import ProgressRing from '../components/ProgressRing';
 import AuroraBackground from '../components/AuroraBackground';
 import AnimatedAthlete from '../components/AnimatedAthlete';
 import { FadeInView } from '../components/AnimatedCard';
-
-I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
 
 const { width } = Dimensions.get('window');
 
@@ -90,6 +89,7 @@ function ActionCard({ title, subtitle, icon, gradient, color, onPress, delay }) 
 }
 
 export default function HomeScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
   const { user, userProfile } = useAuth();
   const displayName = userProfile?.name || user?.displayName || 'מתאמן';
   const firstName = displayName.split(' ')[0];
@@ -148,7 +148,7 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.md }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Top bar */}
@@ -294,10 +294,12 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.aiTextBlock}>
               <View style={styles.aiTitleRow}>
                 <Text style={styles.aiTitle}>המאמן AI</Text>
-                <View style={styles.aiTag}>
-                  <View style={styles.aiTagDot} />
-                  <Text style={styles.aiTagText}>חי</Text>
-                </View>
+                {isAIConnected() && (
+                  <View style={styles.aiTag}>
+                    <View style={styles.aiTagDot} />
+                    <Text style={styles.aiTagText}>חי</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.aiSubtitle}>שאל אותי כל שאלה על תזונה, אימונים, מוטיבציה</Text>
             </View>
@@ -351,7 +353,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: SPACING.md,
-    paddingTop: SPACING.xxl + SPACING.md,
   },
 
   // Top bar

@@ -1,4 +1,10 @@
 import { registerRootComponent } from 'expo';
+import { I18nManager } from 'react-native';
+
+// Force RTL at the app entry point (before any screen renders) so Hebrew
+// layout direction is deterministic from the very first paint.
+I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
 
 import App from './App';
 

@@ -33,7 +33,11 @@ export function calculateGrams(food, targetCalories) {
     return Math.round((targetCalories / food.calories) * 100);
   }
   // For items not per 100g (single serving), return number of servings
-  return Math.round(targetCalories / food.calories * 10) / 10;
+  // rounded to the nearest 0.5 (you can eat half a bar, not 0.3 of one),
+  // with a minimum of 1 serving.
+  const servings = targetCalories / food.calories;
+  const rounded = Math.round(servings * 2) / 2;
+  return Math.max(1, rounded);
 }
 
 /**

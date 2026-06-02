@@ -6,9 +6,7 @@
 
 import { EXERCISES, MUSCLE_GROUPS } from '../data/exercises';
 import { getExerciseAlternatives } from './workoutEngine';
-
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const API_KEY = 'YOUR_CLAUDE_API_KEY'; // TODO: Move to backend/env
+import { callClaude, parseClaudeJson } from './claudeClient';
 
 /**
  * System prompt for workout AI actions
@@ -99,32 +97,12 @@ ${userRequest ? `בקשה ספציפית: ${userRequest}` : ''}
 5. תן עדיפות לתרגילים שעובדים על אותו חלק בשריר`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: WORKOUT_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const text = await callClaude({
+      system: WORKOUT_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1024,
     });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.content[0].text;
-
-    // Parse JSON from response
-    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const result = JSON.parse(jsonStr);
+    const result = parseClaudeJson(text);
 
     // Validate alternatives against our database
     if (result.alternatives) {
@@ -154,7 +132,9 @@ ${userRequest ? `בקשה ספציפית: ${userRequest}` : ''}
 
     return result;
   } catch (error) {
-    console.error('AI Workout Service Error:', error);
+    if (error.code !== 'NO_API_KEY') {
+      console.error('AI Workout Service Error:', error);
+    }
     // Fallback to local alternatives
     return generateFallbackAlternatives(currentExercise, currentProgramIds);
   }
@@ -221,30 +201,12 @@ ${exerciseContext}
 4. השתמש רק בתרגילים מהמאגר`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: WORKOUT_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const text = await callClaude({
+      system: WORKOUT_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1500,
     });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.content[0].text;
-    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const result = JSON.parse(jsonStr);
+    const result = parseClaudeJson(text);
 
     // Validate exercises
     if (result.exercises) {
@@ -270,9 +232,45 @@ ${exerciseContext}
 
     return result;
   } catch (error) {
-    console.error('AI Session Variation Error:', error);
-    return null;
+    if (error.code !== 'NO_API_KEY') {
+      console.error('AI Session Variation Error:', error);
+    }
+    // Local fallback: swap each non-warmup/non-cardio exercise for a same-muscle
+    // alternative so "vary with AI" still does something useful without a key.
+    return generateFallbackVariation(currentSession);
   }
+}
+
+/**
+ * Local fallback for session variation - swaps each main exercise for a
+ * same-muscle-group alternative not already in the session.
+ */
+function generateFallbackVariation(currentSession) {
+  const usedIds = currentSession.exercises.map((e) => e.exerciseId);
+  const newExercises = currentSession.exercises.map((ex) => {
+    if (ex.isWarmup || ex.isCardio) return ex;
+    const alts = getExerciseAlternatives(ex.exerciseId, ex.muscleGroup, usedIds);
+    const pick = alts && alts.length > 0 ? alts[0] : null;
+    if (pick) {
+      usedIds.push(pick.id);
+      return {
+        exerciseId: pick.id,
+        muscleGroup: ex.muscleGroup,
+        name: pick.name,
+        sets: ex.sets,
+        reps: pick.defaultReps || ex.reps,
+        isCompound: ex.isCompound || false,
+        isWarmup: false,
+      };
+    }
+    return ex;
+  });
+
+  return {
+    exercises: newExercises,
+    reasoning: 'גיוון מקומי: כל תרגיל הוחלף בחלופה מאותה קבוצת שריר',
+    tip: 'מומלץ לשמור על אותה טכניקה ולהתמקד בתחושת השריר',
+  };
 }
 
 /**

@@ -104,20 +104,29 @@ function SlotSection({ slot, mealId, slotIndex, onSwap, swapping }) {
   const selectedOption = slot.options?.[slot.selectedIndex];
   if (!selectedOption && slot.optional) return null;
 
+  // Only show the swap button when there are real alternatives to swap to.
+  // (e.g. "free calories" slots have no category alternatives → no dead-end modal)
+  const hasAlternatives = slot.options && slot.options.length > 1;
+
   return (
     <View style={styles.slotSection}>
       <View style={styles.slotHeader}>
-        <TouchableOpacity
-          style={styles.swapButton}
-          onPress={() => onSwap(mealId, slotIndex, slot)}
-          disabled={swapping}
-        >
-          {swapping ? (
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : (
-            <MaterialIcons name="swap-horiz" size={20} color={COLORS.primary} />
-          )}
-        </TouchableOpacity>
+        {hasAlternatives ? (
+          <TouchableOpacity
+            style={styles.swapButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            onPress={() => onSwap(mealId, slotIndex, slot)}
+            disabled={swapping}
+          >
+            {swapping ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <MaterialIcons name="swap-horiz" size={20} color={COLORS.primary} />
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 20 }} />
+        )}
         <Text style={styles.slotLabel}>{slot.label} | {slot.targetCalories} קל</Text>
       </View>
 

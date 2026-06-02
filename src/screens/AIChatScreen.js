@@ -6,9 +6,11 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS } from '../config/theme';
-import { sendMessageToAI } from '../services/aiService';
+import { sendMessageToAI, isAIConnected } from '../services/aiService';
 import { useAuth } from '../context/AuthContext';
 import AuroraBackground from '../components/AuroraBackground';
+
+const AI_LIVE = isAIConnected();
 
 const INITIAL_MESSAGE = {
   id: '1',
@@ -81,10 +83,16 @@ export default function AIChatScreen() {
           <MaterialIcons name="auto-awesome" size={22} color={COLORS.text} />
         </LinearGradient>
         <Text style={styles.title}>המאמן AI שלך</Text>
-        <View style={styles.aiStatus}>
-          <View style={styles.aiStatusDot} />
-          <Text style={styles.aiStatusText}>חי</Text>
-        </View>
+        {AI_LIVE ? (
+          <View style={styles.aiStatus}>
+            <View style={styles.aiStatusDot} />
+            <Text style={styles.aiStatusText}>חי</Text>
+          </View>
+        ) : (
+          <View style={styles.aiStatusOffline}>
+            <Text style={styles.aiStatusOfflineText}>בסיסי</Text>
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -202,6 +210,19 @@ const styles = StyleSheet.create({
     color: COLORS.success,
     fontSize: 10,
     fontWeight: '800',
+  },
+  aiStatusOffline: {
+    backgroundColor: COLORS.surfaceLight,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  aiStatusOfflineText: {
+    color: COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
   },
   header: {
     flexDirection: 'row-reverse',

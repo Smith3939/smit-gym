@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  Dimensions, Animated, Easing,
+  Dimensions, Animated, Easing, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -326,10 +326,15 @@ export default function RecipeGeneratorScreen({ navigation }) {
     <View style={styles.root}>
       <AuroraBackground intensity={0.5} />
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <FadeInView style={styles.header}>
@@ -453,6 +458,7 @@ export default function RecipeGeneratorScreen({ navigation }) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Detail overlay */}
       {selectedRecipe && (

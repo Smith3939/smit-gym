@@ -185,7 +185,10 @@ export default function LoginScreen({ navigation }) {
 
             <View style={styles.inputWrapper}>
               <View style={styles.inputContainer}>
-                <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
                   <MaterialIcons
                     name={showPassword ? 'visibility' : 'visibility-off'}
                     size={22}
@@ -231,21 +234,27 @@ export default function LoginScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
 
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>או</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {Platform.OS === 'web' && (
+              <>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>או</Text>
+                  <View style={styles.dividerLine} />
+                </View>
 
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleLogin}
-              disabled={loading}
-              activeOpacity={0.85}
-            >
-              <FontAwesome name="google" size={20} color="#DB4437" />
-              <Text style={styles.googleButtonText}>התחבר עם Google</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.googleButton}
+                  onPress={handleGoogleLogin}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <FontAwesome name="google" size={20} color="#DB4437" />
+                  <Text style={styles.googleButtonText}>התחבר עם Google</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <View style={{ height: SPACING.md }} />
 
             <TouchableOpacity
               style={styles.registerButton}

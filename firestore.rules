@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Smit Gym - Firestore Security Rules
+//
+// DEPLOY THESE before any real user signs up. Currently the database is in
+// "test mode" (open to the world). To deploy:
+//   1. Firebase Console > Firestore Database > Rules tab
+//   2. Paste this file's contents, click "Publish"
+//   (or: firebase deploy --only firestore:rules with the Firebase CLI)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // A user can only read/write their own profile document and its subcollections
+    // (weightHistory, workoutLogs, waterLog, etc.)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /{subcollection=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

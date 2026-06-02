@@ -1,5 +1,4 @@
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const API_KEY = 'YOUR_CLAUDE_API_KEY'; // TODO: Move to env/backend
+import { callClaude } from './claudeClient';
 
 const SYSTEM_PROMPT = `אתה מאמן כושר ותזונה מקצועי בשם "מאמן Smit". אתה מדבר בעברית.
 
@@ -53,33 +52,20 @@ export async function sendMessageToAI(messages, userProfile = null) {
     }));
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: apiMessages,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.content[0].text;
+    return await callClaude({ system: systemPrompt, messages: apiMessages, maxTokens: 1024 });
   } catch (error) {
-    console.error('AI Service Error:', error);
+    if (error.code !== 'NO_API_KEY') {
+      console.error('AI Service Error:', error);
+    }
     return generateFallbackResponse(messages[messages.length - 1]?.content || '');
   }
 }
+
+/**
+ * Is the real AI connected? Used by the UI to show/hide the "live" badge
+ * so we never misrepresent the fallback as live AI.
+ */
+export { hasValidClaudeKey as isAIConnected } from './claudeClient';
 
 function generateFallbackResponse(question) {
   const q = question.toLowerCase();

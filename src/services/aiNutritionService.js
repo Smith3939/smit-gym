@@ -6,9 +6,7 @@
 
 import { FOOD_CATEGORIES } from '../data/nutrition';
 import { calculateGrams, calculateFoodMacros, getFoodById } from './mealPlanGenerator';
-
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const API_KEY = 'YOUR_CLAUDE_API_KEY'; // TODO: Move to backend/env
+import { callClaude, parseClaudeJson } from './claudeClient';
 
 /**
  * System prompt specifically for nutrition AI actions (structured output)
@@ -91,32 +89,12 @@ ${userRequest ? `בקשה ספציפית: ${userRequest}` : ''}
 4. התאם למטרת המתאמן`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: NUTRITION_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const text = await callClaude({
+      system: NUTRITION_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1024,
     });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.content[0].text;
-
-    // Parse JSON from response (handle potential markdown wrapping)
-    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const result = JSON.parse(jsonStr);
+    const result = parseClaudeJson(text);
 
     // Validate and enrich alternatives with data from our database
     if (result.alternatives) {
@@ -142,7 +120,9 @@ ${userRequest ? `בקשה ספציפית: ${userRequest}` : ''}
 
     return result;
   } catch (error) {
-    console.error('AI Nutrition Service Error:', error);
+    if (error.code !== 'NO_API_KEY') {
+      console.error('AI Nutrition Service Error:', error);
+    }
     // Fallback: generate alternatives from database without AI
     return generateFallbackAlternatives(currentFood, targetCalories);
   }
@@ -204,32 +184,16 @@ ${preferences ? `העדפות: ${preferences}` : ''}
 השתמש רק במזונות מהמאגר. חשב כמויות מדויקות.`;
 
   try {
-    const response = await fetch(CLAUDE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        system: NUTRITION_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const text = await callClaude({
+      system: NUTRITION_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+      maxTokens: 1024,
     });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.content[0].text;
-    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(jsonStr);
+    return parseClaudeJson(text);
   } catch (error) {
-    console.error('AI Meal Suggestion Error:', error);
+    if (error.code !== 'NO_API_KEY') {
+      console.error('AI Meal Suggestion Error:', error);
+    }
     return null;
   }
 }
