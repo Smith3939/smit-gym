@@ -5,6 +5,8 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "backgroundColor": "#0A0E1A",
+    "primaryColor": "#0A0E1A",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "scheme": "smitgym",
@@ -18,23 +20,51 @@
       "bundleIdentifier": "com.smitgym.app",
       "buildNumber": "1",
       "infoPlist": {
-        "CFBundleDisplayName": "Smit Gym"
+        "CFBundleDisplayName": "Smit Gym",
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent",
+        "UIViewControllerBasedStatusBarAppearance": false
       }
     },
     "android": {
       "package": "com.smitgym.app",
       "versionCode": 1,
+      "backgroundColor": "#0A0E1A",
+      "userInterfaceStyle": "dark",
+      "navigationBar": {
+        "backgroundColor": "#0A0E1A",
+        "barStyle": "light-content"
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0A0E1A"
       },
       "edgeToEdgeEnabled": true
     },
+    "androidStatusBar": {
+      "backgroundColor": "#0A0E1A",
+      "barStyle": "light-content",
+      "translucent": false
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#0A0E1A",
+      "barStyle": "light-content"
+    },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#0A0E1A",
+      "backgroundColor": "#0A0E1A"
     },
     "plugins": [
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-system-ui",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "hidden": false,
+          "style": "dark"
+        }
+      ]
     ],
     "extra": {
       "eas": {

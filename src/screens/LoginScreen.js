@@ -130,10 +130,7 @@ export default function LoginScreen({ navigation, route }) {
       <View
         style={[
           styles.backgroundStage,
-          {
-            top: insets.top,
-            bottom: insets.bottom,
-          },
+          StyleSheet.absoluteFillObject,
         ]}
       >
         <AuroraBackground intensity={0.7} />
