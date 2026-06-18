@@ -4,11 +4,10 @@
  * AI services (chat, nutrition, workout) behave consistently.
  */
 
-import { CLAUDE_API_KEY } from '../config/apiKeys';
-
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-4-20250514';
 const TIMEOUT_MS = 20000;
+const CLAUDE_API_KEY = process.env.EXPO_PUBLIC_CLAUDE_API_KEY;
 
 /**
  * Is a real Claude key configured? (vs the placeholder)
