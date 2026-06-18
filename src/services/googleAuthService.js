@@ -1,10 +1,9 @@
-import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import {
   GoogleAuthProvider,
   signInWithCredential,
-  signInWithRedirect,
+  signInWithPopup,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
@@ -28,8 +27,9 @@ export function useGoogleAuth() {
 export async function signInWithGoogleWeb() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
-  await signInWithRedirect(auth, provider);
-  return null;
+  const result = await signInWithPopup(auth, provider);
+  await ensureUserProfile(result.user);
+  return result.user;
 }
 
 export async function signInWithGoogleCredential(idToken) {
@@ -44,6 +44,7 @@ export async function ensureUserProfile(user) {
   const userDoc = await getDoc(userRef);
 
   if (!userDoc.exists()) {
+    const providerId = user.providerData?.[0]?.providerId || 'password';
     const profile = {
       name: user.displayName || '',
       email: user.email,
@@ -61,7 +62,7 @@ export async function ensureUserProfile(user) {
       waterGoal: 3.5,
       stepGoal: 12000,
       favorites: [],
-      provider: 'google',
+      provider: providerId === 'google.com' ? 'google' : 'email',
     };
     await setDoc(userRef, profile);
     return profile;

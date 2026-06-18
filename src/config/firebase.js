@@ -4,22 +4,10 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const defaultAuthDomain = 'smith-gymai.firebaseapp.com';
-const productionAuthDomain = 'fitness-alpha-woad.vercel.app';
-
-function getAuthDomain() {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') {
-    return defaultAuthDomain;
-  }
-
-  const hostname = window.location.hostname;
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-
-  return isLocalhost ? defaultAuthDomain : productionAuthDomain;
-}
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDcdHFKnZylIGgRFheehyxQ6y-cFcSj0ug',
-  authDomain: getAuthDomain(),
+  authDomain: defaultAuthDomain,
   projectId: 'smith-gymai',
   storageBucket: 'smith-gymai.firebasestorage.app',
   messagingSenderId: '202077379455',

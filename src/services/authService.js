@@ -38,11 +38,7 @@ export async function registerUser(email, password, name) {
 
 export async function loginUser(email, password) {
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
-  const profileDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-  return {
-    user: userCredential.user,
-    profile: profileDoc.exists() ? profileDoc.data() : null,
-  };
+  return { user: userCredential.user };
 }
 
 export async function logoutUser() {

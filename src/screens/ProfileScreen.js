@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
@@ -74,11 +74,29 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('התנתקות', 'בטוח שאתה רוצה להתנתק?', [
-      { text: 'ביטול', style: 'cancel' },
-      { text: 'התנתק', style: 'destructive', onPress: logout },
-    ]);
+  const confirmLogout = () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      return window.confirm('בטוח שאתה רוצה להתנתק?');
+    }
+
+    return new Promise((resolve) => {
+      Alert.alert('התנתקות', 'בטוח שאתה רוצה להתנתק?', [
+        { text: 'ביטול', style: 'cancel', onPress: () => resolve(false) },
+        { text: 'התנתק', style: 'destructive', onPress: () => resolve(true) },
+      ]);
+    });
+  };
+
+  const handleLogout = async () => {
+    const shouldLogout = await confirmLogout();
+    if (!shouldLogout) return;
+
+    try {
+      await logout();
+    } catch (e) {
+      console.log('Logout failed:', e);
+      toast.error('לא הצלחנו להתנתק, נסה שוב');
+    }
   };
 
   return (

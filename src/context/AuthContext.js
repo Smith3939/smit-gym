@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { auth } from '../config/firebase';
 import { logoutUser, updateUserProfile } from '../services/authService';
 import { ensureUserProfile } from '../services/googleAuthService';
 
@@ -17,13 +16,8 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         setUser(firebaseUser);
         try {
-          const profileDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          if (profileDoc.exists()) {
-            setUserProfile(profileDoc.data());
-          } else if (firebaseUser.providerData.some((provider) => provider.providerId === 'google.com')) {
-            const profile = await ensureUserProfile(firebaseUser);
-            setUserProfile(profile);
-          }
+          const profile = await ensureUserProfile(firebaseUser);
+          setUserProfile(profile);
         } catch (e) {
           console.log('Error fetching profile:', e);
         }

@@ -6,8 +6,10 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { registerUser } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 export default function RegisterScreen({ navigation }) {
+  const { setUserProfile } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,15 +37,17 @@ export default function RegisterScreen({ navigation }) {
 
     setLoading(true);
     try {
-      await registerUser(email.trim(), password, name.trim());
+      const { profile } = await registerUser(email.trim(), password, name.trim());
+      setUserProfile(profile);
     } catch (error) {
       let msg = 'שגיאה בהרשמה, נסה שוב';
       if (error.code === 'auth/email-already-in-use') msg = 'כתובת אימייל כבר בשימוש';
       else if (error.code === 'auth/invalid-email') msg = 'כתובת אימייל לא תקינה';
       else if (error.code === 'auth/weak-password') msg = 'הסיסמה חלשה מדי';
       Alert.alert('שגיאה', msg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
