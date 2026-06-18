@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
-  Animated, Dimensions,
+  Animated, Dimensions, useWindowDimensions,
 } from 'react-native';
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +26,7 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const toast = useToast();
 
@@ -80,6 +81,9 @@ export default function LoginScreen({ navigation }) {
       else if (error.code === 'auth/invalid-email') msg = 'כתובת אימייל לא תקינה';
       else if (error.code === 'auth/too-many-requests') msg = 'יותר מדי ניסיונות, נסה מאוחר יותר';
       else if (error.code === 'auth/invalid-credential') msg = 'אימייל או סיסמה שגויים';
+      else if (error.code === 'auth/operation-not-allowed') msg = 'יש להפעיל Email/Password ב-Firebase Authentication';
+      else if (error.code === 'auth/configuration-not-found') msg = 'הגדרות Firebase Authentication חסרות לפרויקט הזה';
+      console.error('Login failed:', error.code, error.message);
       toast.error(msg);
     }
     setLoading(false);
@@ -128,9 +132,11 @@ export default function LoginScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
+          style={styles.scroll}
           contentContainerStyle={[
             styles.content,
             {
+              minHeight: height,
               paddingTop: Math.max(insets.top + SPACING.md, SPACING.xl),
               paddingBottom: Math.max(insets.bottom + SPACING.lg, SPACING.xl),
             },
@@ -227,6 +233,9 @@ export default function LoginScreen({ navigation }) {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  autoComplete="current-password"
+                  autoCapitalize="none"
+                  autoCorrect={false}
                   textAlign="right"
                 />
                 <MaterialIcons name="lock" size={22} color={COLORS.primary} />
@@ -315,6 +324,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   kav: {
+    flex: 1,
+  },
+  scroll: {
     flex: 1,
   },
   content: {

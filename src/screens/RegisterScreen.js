@@ -1,15 +1,30 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert,
+  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getRegisterErrorMessage(error) {
+  if (error.code === 'auth/email-already-in-use') return 'כתובת אימייל כבר בשימוש';
+  if (error.code === 'auth/invalid-email') return 'כתובת אימייל לא תקינה';
+  if (error.code === 'auth/weak-password') return 'הסיסמה חלשה מדי';
+  if (error.code === 'auth/operation-not-allowed') return 'יש להפעיל Email/Password ב-Firebase Authentication';
+  if (error.code === 'auth/configuration-not-found') return 'הגדרות Firebase Authentication חסרות לפרויקט הזה';
+  if (error.code === 'auth/too-many-requests') return 'יותר מדי ניסיונות, נסה שוב מאוחר יותר';
+  if (error.code === 'auth/network-request-failed') return 'בעיית רשת, בדוק חיבור ונסה שוב';
+  return 'שגיאה בהרשמה, נסה שוב';
+}
 
 export default function RegisterScreen({ navigation }) {
   const { setUserProfile } = useAuth();
+  const toast = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,33 +33,38 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!name.trim()) {
-      Alert.alert('שגיאה', 'יש להזין שם');
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName) {
+      toast.error('יש להזין שם');
       return;
     }
-    if (!email.trim()) {
-      Alert.alert('שגיאה', 'יש להזין אימייל');
+    if (!cleanEmail) {
+      toast.error('יש להזין אימייל');
+      return;
+    }
+    if (!EMAIL_PATTERN.test(cleanEmail)) {
+      toast.error('כתובת אימייל לא תקינה');
       return;
     }
     if (password.length < 6) {
-      Alert.alert('שגיאה', 'הסיסמה חייבת להכיל לפחות 6 תווים');
+      toast.error('הסיסמה חייבת להכיל לפחות 6 תווים');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('שגיאה', 'הסיסמאות לא תואמות');
+      toast.error('הסיסמאות לא תואמות');
       return;
     }
 
     setLoading(true);
     try {
-      const { profile } = await registerUser(email.trim(), password, name.trim());
+      const { profile } = await registerUser(cleanEmail, password, cleanName);
       setUserProfile(profile);
+      toast.success('החשבון נוצר בהצלחה!');
     } catch (error) {
-      let msg = 'שגיאה בהרשמה, נסה שוב';
-      if (error.code === 'auth/email-already-in-use') msg = 'כתובת אימייל כבר בשימוש';
-      else if (error.code === 'auth/invalid-email') msg = 'כתובת אימייל לא תקינה';
-      else if (error.code === 'auth/weak-password') msg = 'הסיסמה חלשה מדי';
-      Alert.alert('שגיאה', msg);
+      console.error('Registration failed:', error.code, error.message);
+      toast.error(getRegisterErrorMessage(error), 5000);
     } finally {
       setLoading(false);
     }
@@ -77,6 +97,7 @@ export default function RegisterScreen({ navigation }) {
               placeholderTextColor={COLORS.textMuted}
               value={name}
               onChangeText={setName}
+              autoComplete="name"
               textAlign="right"
             />
           </View>
@@ -90,7 +111,9 @@ export default function RegisterScreen({ navigation }) {
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
+              autoComplete="email"
               autoCapitalize="none"
+              autoCorrect={false}
               textAlign="right"
             />
           </View>
@@ -110,6 +133,9 @@ export default function RegisterScreen({ navigation }) {
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              autoCorrect={false}
               textAlign="right"
             />
             <MaterialIcons name="lock" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
@@ -124,6 +150,9 @@ export default function RegisterScreen({ navigation }) {
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showPassword}
+              autoComplete="new-password"
+              autoCapitalize="none"
+              autoCorrect={false}
               textAlign="right"
             />
           </View>
