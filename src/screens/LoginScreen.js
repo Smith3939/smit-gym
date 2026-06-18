@@ -7,6 +7,7 @@ import {
 import { MaterialIcons, FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
 } from '../config/theme';
@@ -25,6 +26,7 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
   const toast = useToast();
 
   const logoScale = useRef(new Animated.Value(0)).current;
@@ -109,13 +111,33 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <AuroraBackground intensity={0.7} />
+      <View
+        style={[
+          styles.backgroundStage,
+          {
+            top: insets.top,
+            bottom: insets.bottom,
+          },
+        ]}
+      >
+        <AuroraBackground intensity={0.7} />
+      </View>
 
       <KeyboardAvoidingView
         style={styles.kav}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingTop: Math.max(insets.top + SPACING.md, SPACING.xl),
+              paddingBottom: Math.max(insets.bottom + SPACING.lg, SPACING.xl),
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* Logo */}
           <View style={styles.logoSection}>
             <Animated.View style={[styles.ringOuter, { transform: [{ rotate: spin }] }]}>
@@ -277,7 +299,13 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.backgroundDeep,
+  },
+  backgroundStage: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    overflow: 'hidden',
   },
   glowBg: {
     position: 'absolute',
