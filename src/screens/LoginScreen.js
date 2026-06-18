@@ -88,7 +88,6 @@ export default function LoginScreen({ navigation }) {
     try {
       if (Platform.OS === 'web') {
         await signInWithGoogleWeb();
-        toast.success('התחברת עם Google! 🎉');
       } else {
         toast.info('התחברות Google זמינה כרגע רק בדפדפן');
       }

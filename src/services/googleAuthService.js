@@ -1,7 +1,11 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithRedirect,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
@@ -23,9 +27,9 @@ export function useGoogleAuth() {
 
 export async function signInWithGoogleWeb() {
   const provider = new GoogleAuthProvider();
-  const result = await signInWithPopup(auth, provider);
-  await ensureUserProfile(result.user);
-  return result.user;
+  provider.setCustomParameters({ prompt: 'select_account' });
+  await signInWithRedirect(auth, provider);
+  return null;
 }
 
 export async function signInWithGoogleCredential(idToken) {
@@ -35,12 +39,12 @@ export async function signInWithGoogleCredential(idToken) {
   return result.user;
 }
 
-async function ensureUserProfile(user) {
+export async function ensureUserProfile(user) {
   const userRef = doc(db, 'users', user.uid);
   const userDoc = await getDoc(userRef);
 
   if (!userDoc.exists()) {
-    await setDoc(userRef, {
+    const profile = {
       name: user.displayName || '',
       email: user.email,
       photoURL: user.photoURL || '',
@@ -58,6 +62,10 @@ async function ensureUserProfile(user) {
       stepGoal: 12000,
       favorites: [],
       provider: 'google',
-    });
+    };
+    await setDoc(userRef, profile);
+    return profile;
   }
+
+  return userDoc.data();
 }
