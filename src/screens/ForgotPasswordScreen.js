@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
@@ -7,27 +7,38 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { resetPassword } from '../services/authService';
 
-export default function ForgotPasswordScreen({ navigation }) {
+export default function ForgotPasswordScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const initialEmail = route?.params?.email;
+
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
 
   const handleReset = async () => {
-    if (!email.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail) {
       Alert.alert('שגיאה', 'יש להזין כתובת אימייל');
       return;
     }
     setLoading(true);
     try {
-      await resetPassword(email.trim());
+      await resetPassword(cleanEmail);
+      setEmail(cleanEmail);
       setSent(true);
     } catch (error) {
       let msg = 'שגיאה בשליחת האימייל';
       if (error.code === 'auth/user-not-found') msg = 'משתמש לא נמצא עם אימייל זה';
       else if (error.code === 'auth/invalid-email') msg = 'כתובת אימייל לא תקינה';
       Alert.alert('שגיאה', msg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (sent) {

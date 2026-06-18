@@ -20,8 +20,9 @@ import AuroraBackground from '../components/AuroraBackground';
 import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 const { width } = Dimensions.get('window');
+const SHOW_GOOGLE_LOGIN = false;
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +30,7 @@ export default function LoginScreen({ navigation }) {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const toast = useToast();
+  const initialEmail = route?.params?.email;
 
   const logoScale = useRef(new Animated.Value(0)).current;
   const logoRotation = useRef(new Animated.Value(0)).current;
@@ -65,15 +67,23 @@ export default function LoginScreen({ navigation }) {
     ).start();
   }, []);
 
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
+
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password.trim()) {
       toast.error('יש למלא אימייל וסיסמה');
       return;
     }
     setLoading(true);
     try {
-      await loginUser(email.trim(), password);
-      toast.success('התחברת בהצלחה! 🎉');
+      await loginUser(cleanEmail, password);
+      toast.success('התחברת בהצלחה!');
     } catch (error) {
       let msg = 'שגיאה בהתחברות, נסה שוב';
       if (error.code === 'auth/user-not-found') msg = 'משתמש לא נמצא';
@@ -85,8 +95,9 @@ export default function LoginScreen({ navigation }) {
       else if (error.code === 'auth/configuration-not-found') msg = 'הגדרות Firebase Authentication חסרות לפרויקט הזה';
       console.error('Login failed:', error.code, error.message);
       toast.error(msg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleGoogleLogin = async () => {
@@ -242,7 +253,9 @@ export default function LoginScreen({ navigation }) {
               </View>
             </View>
 
-            <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword', { email: email.trim().toLowerCase() })}
+            >
               <Text style={styles.forgotText}>שכחת סיסמה?</Text>
             </TouchableOpacity>
 
@@ -268,7 +281,7 @@ export default function LoginScreen({ navigation }) {
               </LinearGradient>
             </TouchableOpacity>
 
-            {Platform.OS === 'web' && (
+            {SHOW_GOOGLE_LOGIN && Platform.OS === 'web' && (
               <>
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />

@@ -12,7 +12,9 @@ import { useToast } from '../components/Toast';
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getRegisterErrorMessage(error) {
-  if (error.code === 'auth/email-already-in-use') return 'כתובת אימייל כבר בשימוש';
+  if (error.code === 'auth/email-already-in-use') {
+    return 'כבר קיים חשבון עם האימייל הזה. התחבר עם האימייל, ואם שכחת סיסמה אפס אותה.';
+  }
   if (error.code === 'auth/invalid-email') return 'כתובת אימייל לא תקינה';
   if (error.code === 'auth/weak-password') return 'הסיסמה חלשה מדי';
   if (error.code === 'auth/operation-not-allowed') return 'יש להפעיל Email/Password ב-Firebase Authentication';
@@ -65,6 +67,9 @@ export default function RegisterScreen({ navigation }) {
     } catch (error) {
       console.error('Registration failed:', error.code, error.message);
       toast.error(getRegisterErrorMessage(error), 5000);
+      if (error.code === 'auth/email-already-in-use') {
+        navigation.navigate('Login', { email: cleanEmail });
+      }
     } finally {
       setLoading(false);
     }
