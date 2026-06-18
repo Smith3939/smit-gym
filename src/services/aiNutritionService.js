@@ -61,6 +61,8 @@ ${foodsContext}
 פרטי המתאמן:
 - משקל: ${userProfile?.weight || 70} ק"ג
 - מטרה: ${userProfile?.goal === 'cut' ? 'חיטוב' : userProfile?.goal === 'bulk' ? 'עלייה במסה' : 'שמירה'}
+- תדירות אימונים: ${userProfile?.trainingLevel || userProfile?.activityLevel || 'moderate'}
+- פעילות ביום יום: ${userProfile?.dailyActivityLevel || 'light'}
 
 ${userRequest ? `בקשה ספציפית: ${userRequest}` : ''}
 
@@ -157,6 +159,8 @@ ${foodsContext}
 פרטי המתאמן:
 - משקל: ${userProfile?.weight || 70} ק"ג
 - מטרה: ${userProfile?.goal === 'cut' ? 'חיטוב' : userProfile?.goal === 'bulk' ? 'עלייה במסה' : 'שמירה'}
+- תדירות אימונים: ${userProfile?.trainingLevel || userProfile?.activityLevel || 'moderate'}
+- פעילות ביום יום: ${userProfile?.dailyActivityLevel || 'light'}
 
 ${preferences ? `העדפות: ${preferences}` : ''}
 

@@ -69,7 +69,7 @@ ${exerciseContext}
 
 פרטי המתאמן:
 - מטרה: ${userGoal}
-- רמת פעילות: ${userProfile?.activityLevel || 'moderate'}
+- תדירות אימונים: ${userProfile?.trainingLevel || userProfile?.activityLevel || 'moderate'}
 
 ${userRequest ? `בקשה ספציפית: ${userRequest}` : ''}
 

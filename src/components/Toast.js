@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions } from '
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { USE_NATIVE_DRIVER } from '../utils/animation';
+import { RTL_ROW_CENTER, RTL_TEXT } from '../utils/rtl';
 
 const ToastContext = createContext({});
 
@@ -109,8 +110,7 @@ const styles = StyleSheet.create({
   },
   toast: {
     position: 'absolute',
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
@@ -129,6 +129,6 @@ const styles = StyleSheet.create({
     fontSize: FONTS.regular,
     fontWeight: '600',
     flex: 1,
-    textAlign: 'right',
+    ...RTL_TEXT,
   },
 });

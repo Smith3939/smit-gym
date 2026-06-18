@@ -38,9 +38,25 @@ export async function sendMessageToAI(messages, userProfile = null) {
       const goals = { cut: 'חיטוב', bulk: 'עלייה במסה', maintain: 'שמירה על משקל' };
       systemPrompt += `\n- מטרה: ${goals[userProfile.goal] || userProfile.goal}`;
     }
-    if (userProfile.activityLevel) {
-      const levels = { low: 'נמוכה (1-2 אימונים)', moderate: 'בינונית (3-4 אימונים)', high: 'גבוהה (5-6 אימונים)' };
-      systemPrompt += `\n- רמת פעילות: ${levels[userProfile.activityLevel] || userProfile.activityLevel}`;
+    if (userProfile.trainingLevel || userProfile.activityLevel) {
+      const levels = {
+        none: 'ללא אימונים',
+        low: 'נמוכה (1-2 אימונים)',
+        moderate: 'בינונית (3-4 אימונים)',
+        high: 'גבוהה (5-6 אימונים)',
+        extreme: 'גבוהה מאוד (כל יום)',
+      };
+      const trainingLevel = userProfile.trainingLevel || userProfile.activityLevel;
+      systemPrompt += `\n- תדירות אימונים: ${levels[trainingLevel] || trainingLevel}`;
+    }
+    if (userProfile.dailyActivityLevel) {
+      const dailyLevels = {
+        sedentary: 'יושב רוב היום',
+        light: 'פעילות יומית קלה',
+        active: 'פעיל ביום יום',
+        very_active: 'פעיל מאוד / עבודה פיזית',
+      };
+      systemPrompt += `\n- פעילות ביום יום: ${dailyLevels[userProfile.dailyActivityLevel] || userProfile.dailyActivityLevel}`;
     }
   }
 

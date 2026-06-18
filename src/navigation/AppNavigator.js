@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
+import { RTL_DIRECTION } from '../utils/rtl';
 import SplashScreen from '../screens/SplashScreen';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -20,6 +21,7 @@ import ExerciseLibraryScreen from '../screens/ExerciseLibraryScreen';
 import WaterTrackingScreen from '../screens/WaterTrackingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import RecipeGeneratorScreen from '../screens/RecipeGeneratorScreen';
+import SharedProfileScreen from '../screens/SharedProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -27,7 +29,7 @@ const AuthStack = createStackNavigator();
 
 function AuthNavigator() {
   return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+    <AuthStack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
@@ -39,6 +41,7 @@ function HomeTabs() {
   const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
+      sceneContainerStyle={{ backgroundColor: COLORS.background }}
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
           let iconName;
@@ -52,12 +55,14 @@ function HomeTabs() {
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: {
+          ...RTL_DIRECTION,
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
           height: 65 + insets.bottom,
           paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
         },
+        tabBarItemStyle: RTL_DIRECTION,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -82,7 +87,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
       {isLoggedIn ? (
         <>
           <Stack.Screen name="Main" component={HomeTabs} />
@@ -95,6 +100,7 @@ export default function AppNavigator() {
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
       )}
+      <Stack.Screen name="SharedProfile" component={SharedProfileScreen} />
     </Stack.Navigator>
   );
 }

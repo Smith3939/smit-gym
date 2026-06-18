@@ -6,6 +6,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { resetPassword } from '../services/authService';
+import { RTL_ICONS } from '../utils/rtl';
 
 export default function ForgotPasswordScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
@@ -72,7 +73,7 @@ export default function ForgotPasswordScreen({ navigation, route }) {
       <View style={styles.content}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialIcons name="arrow-forward" size={28} color={COLORS.text} />
+            <MaterialIcons name={RTL_ICONS.back} size={28} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.title}>איפוס סיסמה</Text>
         </View>
@@ -126,12 +127,12 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.xl,
   },
   backButton: {
-    marginLeft: SPACING.md,
+    marginStart: SPACING.md,
   },
   title: {
     color: COLORS.text,
@@ -162,7 +163,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   inputIcon: {
-    marginLeft: SPACING.sm,
+    marginStart: SPACING.sm,
   },
   input: {
     flex: 1,

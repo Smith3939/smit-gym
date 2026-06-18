@@ -70,12 +70,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   chartArea: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
   },
   yAxis: {
     justifyContent: 'space-between',
     paddingVertical: 10,
-    marginLeft: SPACING.sm,
+    marginStart: SPACING.sm,
   },
   yLabel: {
     color: COLORS.textMuted,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   },
   barsContainer: {
     flex: 1,
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
   },

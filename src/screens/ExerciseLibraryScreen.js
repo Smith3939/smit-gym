@@ -5,6 +5,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { MUSCLE_GROUPS, EXERCISES } from '../data/exercises';
+import { RTL_ICONS } from '../utils/rtl';
 
 function ExerciseItem({ exercise, isFavorite, onToggleFavorite }) {
   return (
@@ -74,7 +75,7 @@ export default function ExerciseLibraryScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
+          <MaterialIcons name={RTL_ICONS.back} size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.title} numberOfLines={1}>תרגילים - {selectedGroupName}</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.backButton}>
@@ -99,6 +100,9 @@ export default function ExerciseLibraryScreen({ navigation }) {
         showsHorizontalScrollIndicator={false}
         style={styles.groupScroll}
         contentContainerStyle={styles.groupScrollContent}
+        bounces={false}
+        alwaysBounceHorizontal={false}
+        overScrollMode="never"
       >
         <TouchableOpacity
           style={[styles.groupChip, showFavoritesOnly && styles.groupChipActive]}
@@ -146,6 +150,9 @@ export default function ExerciseLibraryScreen({ navigation }) {
           />
         )}
         contentContainerStyle={styles.listContent}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <MaterialIcons name="search-off" size={48} color={COLORS.textMuted} />
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: SPACING.md,
@@ -203,7 +210,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONTS.regular,
     paddingVertical: SPACING.sm,
-    marginLeft: SPACING.sm,
+    marginStart: SPACING.sm,
   },
   groupScroll: {
     maxHeight: 50,
@@ -212,10 +219,10 @@ const styles = StyleSheet.create({
   groupScrollContent: {
     paddingHorizontal: SPACING.md,
     gap: SPACING.sm,
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
   },
   groupChip: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -242,7 +249,7 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.xxl,
   },
   exerciseItem: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
@@ -273,7 +280,7 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.md,
   },
   playIcon: {
-    marginLeft: SPACING.sm,
+    marginStart: SPACING.sm,
   },
   emptyState: {
     alignItems: 'center',

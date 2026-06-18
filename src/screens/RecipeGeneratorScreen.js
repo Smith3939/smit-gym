@@ -19,6 +19,7 @@ import { FadeInView } from '../components/AnimatedCard';
 import AuroraBackground from '../components/AuroraBackground';
 import { useToast } from '../components/Toast';
 import { USE_NATIVE_DRIVER } from '../utils/animation';
+import { RTL_ICONS } from '../utils/rtl';
 
 const { width } = Dimensions.get('window');
 
@@ -135,7 +136,12 @@ function RecipeDetail({ recipe, calorieBudget, onClose }) {
       />
 
       <Animated.View style={[styles.detailContent, { transform: [{ translateX: slideAnim }] }]}>
-        <ScrollView contentContainerStyle={styles.detailScroll}>
+        <ScrollView
+          contentContainerStyle={styles.detailScroll}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
+        >
           {/* Close button */}
           <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
             <MaterialIcons name="close" size={24} color={COLORS.text} />
@@ -336,6 +342,9 @@ export default function RecipeGeneratorScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
       >
         {/* Header */}
         <FadeInView style={styles.header}>
@@ -343,7 +352,7 @@ export default function RecipeGeneratorScreen({ navigation }) {
             style={styles.backBtn}
             onPress={() => navigation?.goBack?.()}
           >
-            <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
+            <MaterialIcons name={RTL_ICONS.back} size={24} color={COLORS.text} />
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Text style={styles.title}>מתכונים חכמים</Text>
@@ -409,6 +418,9 @@ export default function RecipeGeneratorScreen({ navigation }) {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesScroll}
+            bounces={false}
+            alwaysBounceHorizontal={false}
+            overScrollMode="never"
           >
             <CategoryChip
               category={{ id: null, name: 'הכל', icon: 'apps', color: COLORS.primary }}
@@ -489,7 +501,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.lg,
     gap: SPACING.md,
@@ -533,7 +545,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   budgetInputContent: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -544,7 +556,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   budgetInputRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'baseline',
     gap: SPACING.xs,
   },
@@ -571,7 +583,7 @@ const styles = StyleSheet.create({
 
   // Search
   searchContainer: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.lg,
@@ -591,13 +603,13 @@ const styles = StyleSheet.create({
 
   // Categories
   categoriesScroll: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.sm,
     paddingHorizontal: 2,
     marginBottom: SPACING.md,
   },
   categoryChip: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
@@ -615,7 +627,7 @@ const styles = StyleSheet.create({
 
   // Results header
   resultsHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginVertical: SPACING.md,
@@ -626,7 +638,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   aiBadge: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(160,108,213,0.15)',
     paddingHorizontal: SPACING.sm,
@@ -644,7 +656,7 @@ const styles = StyleSheet.create({
 
   // Grid
   grid: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: SPACING.md,
@@ -660,7 +672,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   recipeCardHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.sm,
@@ -673,11 +685,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   recipeTags: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: 4,
   },
   recipeTag: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -699,7 +711,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   recipeMacros: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingTop: SPACING.sm,
     borderTopWidth: 1,
@@ -789,12 +801,12 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   detailMetaRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
   },
   detailMetaItem: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
@@ -823,7 +835,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   budgetMain: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.md,
@@ -833,7 +845,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   budgetRight: {
-    marginLeft: SPACING.md,
+    marginStart: SPACING.md,
   },
   budgetBigNumber: {
     fontSize: 72,
@@ -852,7 +864,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   remainingBadge: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,182,39,0.15)',
     paddingHorizontal: SPACING.sm,
@@ -878,7 +890,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.tiny,
   },
   budgetMacros: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.xs,
     paddingTop: SPACING.md,
     borderTopWidth: 1,
@@ -906,7 +918,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   sectionHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.md,
     gap: SPACING.sm,
@@ -926,7 +938,7 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   ingredientRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.surface,
@@ -959,7 +971,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   stepRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: SPACING.md,
     padding: SPACING.md,
@@ -988,7 +1000,7 @@ const styles = StyleSheet.create({
 
   // Tips
   tipRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: SPACING.sm,
     padding: SPACING.md,

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useToast } from '../components/Toast';
+import { RTL_ICONS } from '../utils/rtl';
 
 const GLASS_SIZE = 250; // ml per glass
 
@@ -38,10 +39,15 @@ export default function WaterTrackingScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name="arrow-forward" size={28} color={COLORS.text} />
+          <MaterialIcons name={RTL_ICONS.back} size={28} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerCenterRow}>
           <MaterialIcons name="water-drop" size={28} color={COLORS.primary} />
@@ -125,7 +131,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
     gap: SPACING.sm,
@@ -141,7 +147,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   headerCenterRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
   },
@@ -208,7 +214,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   glassesGrid: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
     paddingHorizontal: SPACING.lg,
@@ -226,7 +232,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   quickButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.primary,
@@ -240,7 +246,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   undoButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: SPACING.md,
@@ -265,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   logEntry: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,

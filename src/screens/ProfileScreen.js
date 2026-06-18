@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Platform, Share } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { FadeInView } from '../components/AnimatedCard';
 import AuroraBackground from '../components/AuroraBackground';
 import { calculateBMI, calculateBMR, calculateTDEE, calculateTargetCalories } from '../services/nutritionEngine';
+import { createProfileShare, SHARE_PRESETS } from '../services/profileShareService';
 
 export default function ProfileScreen({ navigation }) {
   const { user, userProfile, updateProfile, logout } = useAuth();
@@ -19,7 +19,14 @@ export default function ProfileScreen({ navigation }) {
     gender: 'male',
     goal: 'cut',
     activityLevel: 'moderate',
+    trainingLevel: 'moderate',
+    dailyActivityLevel: 'light',
   });
+  const [shareRole, setShareRole] = useState('coach');
+  const [sharePermissions, setSharePermissions] = useState(SHARE_PRESETS.coach.permissions);
+  const [shareInfo, setShareInfo] = useState(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareExpanded, setShareExpanded] = useState(false);
 
   useEffect(() => {
     if (userProfile) {
@@ -31,6 +38,8 @@ export default function ProfileScreen({ navigation }) {
         gender: userProfile.gender || 'male',
         goal: userProfile.goal || 'cut',
         activityLevel: userProfile.activityLevel || 'moderate',
+        trainingLevel: userProfile.trainingLevel || userProfile.activityLevel || 'moderate',
+        dailyActivityLevel: userProfile.dailyActivityLevel || 'light',
       });
     }
   }, [userProfile]);
@@ -41,7 +50,10 @@ export default function ProfileScreen({ navigation }) {
   const ageNum = Number(profile.age) || 0;
   const bmi = calculateBMI(weightNum, heightNum);
   const bmr = calculateBMR(weightNum, heightNum, ageNum, profile.gender);
-  const tdee = calculateTDEE(bmr, profile.activityLevel);
+  const tdee = calculateTDEE(bmr, {
+    dailyActivityLevel: profile.dailyActivityLevel,
+    trainingLevel: profile.trainingLevel,
+  });
   const targetCal = calculateTargetCalories(tdee, profile.goal);
 
   const genders = [
@@ -55,10 +67,40 @@ export default function ProfileScreen({ navigation }) {
     { id: 'maintain', label: 'שמירה על משקל', icon: 'trending-flat' },
   ];
 
-  const activityLevels = [
-    { id: 'low', label: 'נמוכה (1-2 אימונים)' },
-    { id: 'moderate', label: 'בינונית (3-4 אימונים)' },
-    { id: 'high', label: 'גבוהה (5-6 אימונים)' },
+  const trainingLevels = [
+    { id: 'none', label: 'ללא אימונים' },
+    { id: 'low', label: 'נמוכה (1-2 אימונים בשבוע)' },
+    { id: 'moderate', label: 'בינונית (3-4 אימונים בשבוע)' },
+    { id: 'high', label: 'גבוהה (5-6 אימונים בשבוע)' },
+    { id: 'extreme', label: 'גבוהה מאוד (כל יום)' },
+  ];
+
+  const dailyActivityLevels = [
+    { id: 'sedentary', label: 'יושב רוב היום (עבודה משרדית)' },
+    { id: 'light', label: 'קלילה (הליכה/עמידה חלק מהיום)' },
+    { id: 'active', label: 'פעיל (הרבה הליכה וסידורים)' },
+    { id: 'very_active', label: 'פעיל מאוד (עבודה פיזית)' },
+  ];
+
+  const shareRoles = [
+    {
+      id: 'coach',
+      label: 'מאמן',
+      icon: 'sports',
+      helper: 'מדדים, אוכל ואימונים',
+    },
+    {
+      id: 'friend',
+      label: 'חבר',
+      icon: 'groups',
+      helper: 'אימונים להתקדמות יחד',
+    },
+  ];
+
+  const permissionItems = [
+    { id: 'workouts', label: 'אימונים וחזרות', icon: 'fitness-center' },
+    { id: 'nutrition', label: 'תפריט ומקרו', icon: 'restaurant' },
+    { id: 'bodyMetrics', label: 'משקל וגובה', icon: 'monitor-weight' },
   ];
 
   const saveProfile = async () => {
@@ -99,10 +141,67 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
+  const selectShareRole = (role) => {
+    setShareRole(role);
+    setSharePermissions(SHARE_PRESETS[role].permissions);
+    setShareInfo(null);
+  };
+
+  const toggleSharePermission = (permissionId) => {
+    setSharePermissions((prev) => ({
+      ...prev,
+      [permissionId]: !prev[permissionId],
+    }));
+    setShareInfo(null);
+  };
+
+  const shareGeneratedLink = async (info) => {
+    const message = `Smit Gym - ${profile.name || 'הפרופיל שלי'}\n${info.url}\nקוד שיתוף: ${info.shareId}`;
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+      if (navigator.share) {
+        await navigator.share({ title: 'Smit Gym', text: message, url: info.url });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(message);
+        toast.success('הקישור הועתק');
+      }
+      return;
+    }
+
+    await Share.share({ message, url: info.url, title: 'Smit Gym' });
+  };
+
+  const handleCreateShare = async () => {
+    if (!user) {
+      toast.error('צריך להתחבר כדי לשתף פרופיל');
+      return;
+    }
+
+    setSharing(true);
+    try {
+      const info = await createProfileShare(user.uid, { ...userProfile, ...profile }, {
+        role: shareRole,
+        permissions: sharePermissions,
+      });
+      setShareInfo(info);
+      await shareGeneratedLink(info);
+    } catch (e) {
+      console.log('Profile share failed:', e);
+      toast.error('לא הצלחנו ליצור שיתוף, נסה שוב');
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
       <AuroraBackground intensity={0.4} />
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
       <View style={styles.header}>
         <View style={styles.avatar}>
           <MaterialIcons name="person" size={60} color={COLORS.primary} />
@@ -220,21 +319,119 @@ export default function ProfileScreen({ navigation }) {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>רמת פעילות</Text>
-        {activityLevels.map((level) => (
+        <Text style={styles.sectionTitle}>תדירות אימונים</Text>
+        {trainingLevels.map((level) => (
           <TouchableOpacity
             key={level.id}
-            style={[styles.activityButton, profile.activityLevel === level.id && styles.activityButtonActive]}
-            onPress={() => setProfile({ ...profile, activityLevel: level.id })}
+            style={[styles.activityButton, profile.trainingLevel === level.id && styles.activityButtonActive]}
+            onPress={() => setProfile({
+              ...profile,
+              trainingLevel: level.id,
+              activityLevel: level.id === 'none' ? 'sedentary' : level.id,
+            })}
           >
             <MaterialIcons
-              name={profile.activityLevel === level.id ? 'radio-button-checked' : 'radio-button-unchecked'}
+              name={profile.trainingLevel === level.id ? 'radio-button-checked' : 'radio-button-unchecked'}
               size={24}
-              color={profile.activityLevel === level.id ? COLORS.primary : COLORS.textMuted}
+              color={profile.trainingLevel === level.id ? COLORS.primary : COLORS.textMuted}
             />
             <Text style={styles.activityText}>{level.label}</Text>
           </TouchableOpacity>
         ))}
+
+        <Text style={styles.sectionTitle}>פעילות ביום יום / עבודה</Text>
+        {dailyActivityLevels.map((level) => (
+          <TouchableOpacity
+            key={level.id}
+            style={[styles.activityButton, profile.dailyActivityLevel === level.id && styles.activityButtonActive]}
+            onPress={() => setProfile({ ...profile, dailyActivityLevel: level.id })}
+          >
+            <MaterialIcons
+              name={profile.dailyActivityLevel === level.id ? 'radio-button-checked' : 'radio-button-unchecked'}
+              size={24}
+              color={profile.dailyActivityLevel === level.id ? COLORS.primary : COLORS.textMuted}
+            />
+            <Text style={styles.activityText}>{level.label}</Text>
+          </TouchableOpacity>
+        ))}
+
+        <View style={styles.shareCard}>
+          <TouchableOpacity
+            style={styles.shareHeader}
+            onPress={() => setShareExpanded((current) => !current)}
+            activeOpacity={0.75}
+          >
+            <MaterialIcons
+              name={shareExpanded ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+              size={22}
+              color={COLORS.textMuted}
+            />
+            <View style={styles.shareTitleWrap}>
+              <Text style={styles.shareTitle}>שיתוף פרופיל</Text>
+              <Text style={styles.shareSubtitle}>מאמן או חבר יכולים לראות אימונים, חזרות ותזונה לפי מה שתבחר</Text>
+            </View>
+            <View style={styles.shareIcon}>
+              <MaterialIcons name="ios-share" size={18} color={COLORS.secondary} />
+            </View>
+          </TouchableOpacity>
+
+          {shareExpanded && (
+            <>
+              <View style={styles.shareRoleRow}>
+                {shareRoles.map((role) => (
+                  <TouchableOpacity
+                    key={role.id}
+                    style={[styles.shareRoleButton, shareRole === role.id && styles.shareRoleButtonActive]}
+                    onPress={() => selectShareRole(role.id)}
+                  >
+                    <MaterialIcons
+                      name={role.icon}
+                      size={20}
+                      color={shareRole === role.id ? COLORS.text : COLORS.textMuted}
+                    />
+                    <Text style={[styles.shareRoleText, shareRole === role.id && styles.shareRoleTextActive]}>
+                      {role.label}
+                    </Text>
+                    <Text style={styles.shareRoleHelper}>{role.helper}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <View style={styles.permissionList}>
+                {permissionItems.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[styles.permissionPill, sharePermissions[item.id] && styles.permissionPillActive]}
+                    onPress={() => toggleSharePermission(item.id)}
+                  >
+                    <MaterialIcons
+                      name={sharePermissions[item.id] ? 'check-circle' : item.icon}
+                      size={18}
+                      color={sharePermissions[item.id] ? COLORS.success : COLORS.textMuted}
+                    />
+                    <Text style={styles.permissionText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {shareInfo && (
+                <View style={styles.shareResult}>
+                  <Text style={styles.shareCodeLabel}>קוד שיתוף</Text>
+                  <Text style={styles.shareCode}>{shareInfo.shareId}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={[styles.shareButton, sharing && styles.shareButtonDisabled]}
+                onPress={handleCreateShare}
+                disabled={sharing}
+              >
+                <MaterialIcons name={sharing ? 'hourglass-empty' : 'send'} size={20} color={COLORS.background} />
+                <Text style={styles.shareButtonText}>{sharing ? 'יוצר שיתוף...' : 'צור ושלח קישור'}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
 
         <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
           <Text style={styles.saveButtonText}>שמור פרטים</Text>
@@ -298,7 +495,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   row: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.md,
   },
   sectionTitle: {
@@ -310,7 +507,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   goalRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.sm,
   },
   goalButton: {
@@ -336,7 +533,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   activityButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
     backgroundColor: COLORS.surface,
@@ -365,7 +562,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   logoutButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -380,8 +577,150 @@ const styles = StyleSheet.create({
     fontSize: FONTS.regular,
     fontWeight: '600',
   },
-  statsCard: {
+  shareCard: {
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xl,
+    backgroundColor: COLORS.backgroundLight,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.sm,
+  },
+  shareHeader: {
     flexDirection: 'row-reverse',
+    alignItems: 'center',
+    minHeight: 48,
+    gap: SPACING.sm,
+  },
+  shareIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: COLORS.secondary + '10',
+    borderWidth: 1,
+    borderColor: COLORS.secondary + '25',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareTitleWrap: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  shareTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.small,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  shareSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.micro,
+    textAlign: 'right',
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  shareRoleRow: {
+    flexDirection: 'row-reverse',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  shareRoleButton: {
+    flex: 1,
+    minHeight: 86,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.sm,
+    gap: SPACING.xs,
+  },
+  shareRoleButtonActive: {
+    borderColor: COLORS.secondary,
+    backgroundColor: COLORS.secondary + '12',
+  },
+  shareRoleText: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.small,
+    fontWeight: '800',
+  },
+  shareRoleTextActive: {
+    color: COLORS.text,
+  },
+  shareRoleHelper: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.micro,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  permissionList: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  permissionPill: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    minHeight: 40,
+    borderRadius: BORDER_RADIUS.round,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.xs,
+  },
+  permissionPillActive: {
+    borderColor: COLORS.success + '70',
+    backgroundColor: COLORS.success + '12',
+  },
+  permissionText: {
+    color: COLORS.text,
+    fontSize: FONTS.tiny,
+    fontWeight: '700',
+  },
+  shareResult: {
+    backgroundColor: COLORS.backgroundLight,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.sm,
+    marginBottom: SPACING.md,
+    alignItems: 'flex-end',
+  },
+  shareCodeLabel: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.micro,
+  },
+  shareCode: {
+    color: COLORS.secondary,
+    fontSize: FONTS.tiny,
+    fontWeight: '800',
+    textAlign: 'right',
+    marginTop: SPACING.xs,
+  },
+  shareButton: {
+    minHeight: 44,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.sm,
+  },
+  shareButtonDisabled: {
+    opacity: 0.65,
+  },
+  shareButtonText: {
+    color: COLORS.background,
+    fontSize: FONTS.regular,
+    fontWeight: '900',
+  },
+  statsCard: {
+    flexDirection: 'row',
     backgroundColor: COLORS.surface,
     marginHorizontal: SPACING.lg,
     marginBottom: SPACING.lg,

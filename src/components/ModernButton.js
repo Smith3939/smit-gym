@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS } from '../config/theme';
 import { USE_NATIVE_DRIVER } from '../utils/animation';
+import { RTL_ROW_CENTER } from '../utils/rtl';
 
 /**
  * Modern button with gradient, glow, and press animation
@@ -190,8 +191,7 @@ export default function ModernButton({
 
 const styles = StyleSheet.create({
   buttonBase: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     justifyContent: 'center',
     borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.sm,

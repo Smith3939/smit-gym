@@ -55,6 +55,8 @@ export async function ensureUserProfile(user) {
       weight: '',
       goal: 'cut',
       activityLevel: 'moderate',
+      trainingLevel: 'moderate',
+      dailyActivityLevel: 'light',
       dailyCalories: 2000,
       dailyProtein: 150,
       dailyCarbs: 250,

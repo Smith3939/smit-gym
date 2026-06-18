@@ -392,17 +392,19 @@ function estimateWorkoutDuration(exercises, restSeconds) {
 }
 
 /**
- * Suggest a program type based on user's activity level
- * @param {string} activityLevel - 'low' | 'moderate' | 'high'
+ * Suggest a program type based on user's training frequency.
+ * @param {string} activityLevel - 'none' | 'low' | 'moderate' | 'high' | 'extreme'
  * @returns {string} Suggested program type key
  */
 export function suggestProgramType(activityLevel = 'moderate') {
   switch (activityLevel) {
+    case 'none':
     case 'low':
       return 'FULL_BODY';
     case 'moderate':
       return 'AB';
     case 'high':
+    case 'extreme':
       return 'ABC';
     default:
       return 'AB';

@@ -18,6 +18,7 @@ import { FadeInView } from '../components/AnimatedCard';
 import GlassCard from '../components/GlassCard';
 import AuroraBackground from '../components/AuroraBackground';
 import { USE_NATIVE_DRIVER } from '../utils/animation';
+import { RTL_ICONS } from '../utils/rtl';
 
 const { width } = Dimensions.get('window');
 const SHOW_GOOGLE_LOGIN = false;
@@ -154,6 +155,9 @@ export default function LoginScreen({ navigation, route }) {
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={false}
+          alwaysBounceVertical={false}
+          overScrollMode="never"
         >
           {/* Logo */}
           <View style={styles.logoSection}>
@@ -274,7 +278,7 @@ export default function LoginScreen({ navigation, route }) {
                   <ActivityIndicator color={COLORS.text} />
                 ) : (
                   <>
-                    <MaterialIcons name="arrow-forward" size={20} color={COLORS.text} />
+                    <MaterialIcons name={RTL_ICONS.forward} size={20} color={COLORS.text} />
                     <Text style={styles.loginButtonText}>התחבר</Text>
                   </>
                 )}
@@ -405,7 +409,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   inputContainer: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: BORDER_RADIUS.md,
@@ -423,12 +427,12 @@ const styles = StyleSheet.create({
   forgotText: {
     color: COLORS.primary,
     fontSize: FONTS.small,
-    textAlign: 'left',
+    textAlign: 'right',
     marginBottom: SPACING.lg,
     fontWeight: '600',
   },
   loginButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
@@ -460,7 +464,7 @@ const styles = StyleSheet.create({
     fontSize: FONTS.small,
   },
   googleButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -475,7 +479,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   registerButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

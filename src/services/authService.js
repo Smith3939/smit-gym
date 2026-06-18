@@ -23,6 +23,8 @@ export async function registerUser(email, password, name) {
     weight: '',
     goal: 'cut',
     activityLevel: 'moderate',
+    trainingLevel: 'moderate',
+    dailyActivityLevel: 'light',
     dailyCalories: 2000,
     dailyProtein: 150,
     dailyCarbs: 250,

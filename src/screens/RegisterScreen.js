@@ -8,6 +8,7 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
+import { RTL_ICONS } from '../utils/rtl';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -80,10 +81,16 @@ export default function RegisterScreen({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
+      >
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialIcons name="arrow-forward" size={28} color={COLORS.text} />
+            <MaterialIcons name={RTL_ICONS.back} size={28} color={COLORS.text} />
           </TouchableOpacity>
           <Text style={styles.title}>צור חשבון</Text>
         </View>
@@ -199,12 +206,12 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.lg,
   },
   backButton: {
-    marginLeft: SPACING.md,
+    marginStart: SPACING.md,
   },
   title: {
     color: COLORS.text,
@@ -240,7 +247,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   inputIcon: {
-    marginLeft: SPACING.sm,
+    marginStart: SPACING.sm,
   },
   input: {
     flex: 1,

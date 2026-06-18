@@ -67,7 +67,7 @@ export default function AIChatScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
       <AuroraBackground intensity={0.4} />
 
       <KeyboardAvoidingView
@@ -100,6 +100,9 @@ export default function AIChatScreen() {
         style={styles.messagesList}
         contentContainerStyle={styles.messagesContent}
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
       >
         {messages.map((msg) => (
           <View
@@ -190,7 +193,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   aiStatus: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(52,211,153,0.15)',
     paddingHorizontal: SPACING.sm,
@@ -225,7 +228,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.md,
@@ -262,7 +265,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderBottomRightRadius: BORDER_RADIUS.lg,
     borderBottomLeftRadius: SPACING.xs,
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.sm,
   },
   aiIcon: {
@@ -302,7 +305,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   inputContainer: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'flex-end',
     padding: SPACING.md,
     borderTopWidth: 1,

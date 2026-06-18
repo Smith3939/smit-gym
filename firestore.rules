@@ -21,6 +21,14 @@ service cloud.firestore {
       }
     }
 
+    // Share documents contain a limited snapshot selected by the owner.
+    // The random document id acts as the share token; expired or disabled links are closed.
+    match /sharedProfiles/{shareId} {
+      allow read: if resource.data.status == 'active' && resource.data.expiresAt > request.time;
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;

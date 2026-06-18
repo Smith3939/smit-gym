@@ -46,7 +46,7 @@ export function calculateBMR(weightKg, heightCm, age, gender = 'male') {
 }
 
 /**
- * Activity level multipliers for TDEE calculation
+ * Legacy activity multipliers for existing profiles that only have one activity field.
  */
 const ACTIVITY_MULTIPLIERS = {
   sedentary: 1.2,       // Little to no exercise
@@ -57,13 +57,49 @@ const ACTIVITY_MULTIPLIERS = {
 };
 
 /**
+ * Daily movement from work/lifestyle, before workouts are added.
+ */
+const DAILY_ACTIVITY_MULTIPLIERS = {
+  sedentary: 1.2,       // Desk job, very little walking
+  light: 1.3,           // Some walking / mostly standing
+  active: 1.45,         // Active day, regular walking or errands
+  very_active: 1.6,     // Physical work / on feet most of the day
+};
+
+/**
+ * Training contribution added on top of daily lifestyle movement.
+ */
+const TRAINING_ACTIVITY_ADDITIONS = {
+  none: 0,
+  low: 0.08,            // 1-2 workouts per week
+  moderate: 0.18,       // 3-4 workouts per week
+  high: 0.28,           // 5-6 workouts per week
+  extreme: 0.38,        // Daily or twice-daily training
+};
+
+function resolveCombinedActivityMultiplier(dailyActivityLevel = 'light', trainingLevel = 'moderate') {
+  const dailyMultiplier =
+    DAILY_ACTIVITY_MULTIPLIERS[dailyActivityLevel] || DAILY_ACTIVITY_MULTIPLIERS.light;
+  const trainingAddition =
+    TRAINING_ACTIVITY_ADDITIONS[trainingLevel] ?? TRAINING_ACTIVITY_ADDITIONS.moderate;
+
+  return Math.min(dailyMultiplier + trainingAddition, ACTIVITY_MULTIPLIERS.extreme);
+}
+
+/**
  * Calculate TDEE (Total Daily Energy Expenditure)
  * @param {number} bmr
- * @param {string} activityLevel - 'sedentary' | 'low' | 'moderate' | 'high' | 'extreme'
+ * @param {string|object} activityLevel - legacy activity string or { dailyActivityLevel, trainingLevel }
  * @returns {number} TDEE in kcal/day
  */
 export function calculateTDEE(bmr, activityLevel = 'moderate') {
-  const multiplier = ACTIVITY_MULTIPLIERS[activityLevel] || ACTIVITY_MULTIPLIERS.moderate;
+  const multiplier = typeof activityLevel === 'object' && activityLevel !== null
+    ? resolveCombinedActivityMultiplier(
+        activityLevel.dailyActivityLevel,
+        activityLevel.trainingLevel
+      )
+    : ACTIVITY_MULTIPLIERS[activityLevel] || ACTIVITY_MULTIPLIERS.moderate;
+
   return Math.round(bmr * multiplier);
 }
 
@@ -185,7 +221,7 @@ export function distributeMeals(targetCalories, macros) {
 
 /**
  * Full nutrition profile calculation from user data
- * @param {object} userProfile - { weight, height, age, gender, goal, activityLevel }
+ * @param {object} userProfile - { weight, height, age, gender, goal, activityLevel, dailyActivityLevel, trainingLevel }
  * @returns {object} Complete nutrition plan with BMI, TDEE, macros, and meal distribution
  */
 export function calculateNutritionPlan(userProfile) {
@@ -196,6 +232,8 @@ export function calculateNutritionPlan(userProfile) {
     gender = 'male',
     goal = 'cut',
     activityLevel = 'moderate',
+    dailyActivityLevel,
+    trainingLevel,
   } = userProfile || {};
 
   const weightNum = Number(weight) || 70;
@@ -204,7 +242,12 @@ export function calculateNutritionPlan(userProfile) {
 
   const bmi = calculateBMI(weightNum, heightNum);
   const bmr = calculateBMR(weightNum, heightNum, ageNum, gender);
-  const tdee = calculateTDEE(bmr, activityLevel);
+  const tdee = calculateTDEE(
+    bmr,
+    dailyActivityLevel || trainingLevel
+      ? { dailyActivityLevel, trainingLevel: trainingLevel || activityLevel }
+      : activityLevel
+  );
   const targetCalories = calculateTargetCalories(tdee, goal);
   const macros = calculateMacros(targetCalories, goal, weightNum);
   const meals = distributeMeals(targetCalories, macros);

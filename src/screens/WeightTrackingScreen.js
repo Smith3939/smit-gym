@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import SimpleChart from '../components/SimpleChart';
 import { useToast } from '../components/Toast';
+import { PHYSICAL_ROW, PHYSICAL_ROW_CENTER, RTL_ICONS, RTL_ROW_CENTER } from '../utils/rtl';
 
 export default function WeightTrackingScreen({ navigation }) {
   const toast = useToast();
@@ -15,6 +16,7 @@ export default function WeightTrackingScreen({ navigation }) {
     { date: '24/04/26', time: '08:08', weight: 70.8 },
     { date: '21/04/26', time: '08:15', weight: 71.2 },
   ]);
+  const weightProgress = `${((currentWeight - 40) / 120) * 100}%`;
 
   const adjustWeight = (amount) => {
     setCurrentWeight((prev) => Math.round((prev + amount) * 10) / 10);
@@ -30,13 +32,18 @@ export default function WeightTrackingScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation?.goBack?.()}
         >
-          <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
+          <MaterialIcons name={RTL_ICONS.back} size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <MaterialIcons name="monitor-weight" size={28} color={COLORS.primary} />
@@ -60,8 +67,8 @@ export default function WeightTrackingScreen({ navigation }) {
           <MaterialIcons name="remove" size={28} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.sliderPlaceholder}>
-          <View style={[styles.sliderFill, { width: `${((currentWeight - 40) / 120) * 100}%` }]} />
-          <View style={[styles.sliderThumb, { left: `${((currentWeight - 40) / 120) * 100}%` }]} />
+          <View style={[styles.sliderFill, { width: weightProgress }]} />
+          <View style={[styles.sliderThumb, { right: weightProgress }]} />
         </View>
         <TouchableOpacity style={styles.controlButton} onPress={() => adjustWeight(0.1)}>
           <MaterialIcons name="add" size={28} color={COLORS.text} />
@@ -83,7 +90,7 @@ export default function WeightTrackingScreen({ navigation }) {
         <Text style={styles.goalText}>חיטוב</Text>
         <View style={styles.goalWeights}>
           <Text style={styles.goalWeightText}>משקל התחלתי: {weightHistory[weightHistory.length - 1]?.weight || '--'}</Text>
-          <MaterialIcons name="arrow-back" size={20} color={COLORS.textSecondary} />
+          <MaterialIcons name={RTL_ICONS.forward} size={20} color={COLORS.textSecondary} />
           <Text style={styles.goalWeightText}>משקל נוכחי: {currentWeight}</Text>
         </View>
       </View>
@@ -124,8 +131,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
   },
   topBar: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     justifyContent: 'space-between',
     padding: SPACING.md,
   },
@@ -140,8 +146,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   headerCenter: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     gap: SPACING.sm,
   },
   header: {
@@ -168,8 +173,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   weightControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    ...PHYSICAL_ROW_CENTER,
     paddingHorizontal: SPACING.lg,
     gap: SPACING.md,
   },
@@ -192,6 +196,7 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.primary,
     borderRadius: 3,
+    alignSelf: 'flex-end',
   },
   sliderThumb: {
     position: 'absolute',
@@ -200,10 +205,10 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     backgroundColor: COLORS.primary,
-    marginLeft: -13,
+    marginRight: -13,
   },
   buttonRow: {
-    flexDirection: 'row-reverse',
+    ...RTL_ROW_CENTER,
     paddingHorizontal: SPACING.lg,
     marginTop: SPACING.xl,
     gap: SPACING.md,
@@ -253,8 +258,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   goalWeights: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...PHYSICAL_ROW_CENTER,
     gap: SPACING.sm,
     marginTop: SPACING.md,
   },
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xxl,
   },
   historyHeader: {
-    flexDirection: 'row-reverse',
+    ...PHYSICAL_ROW,
     backgroundColor: COLORS.surface,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.sm,
@@ -287,7 +291,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   historyRow: {
-    flexDirection: 'row-reverse',
+    ...PHYSICAL_ROW,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.sm,
     marginBottom: 2,

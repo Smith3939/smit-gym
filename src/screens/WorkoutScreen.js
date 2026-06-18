@@ -49,7 +49,11 @@ function ProgramSelectorModal({ visible, onClose, onSelect, currentType, suggest
             <MaterialIcons name="fitness-center" size={24} color={COLORS.primary} />
           </View>
 
-          <ScrollView>
+          <ScrollView
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
+          >
             {programTypes.map((pt) => (
               <TouchableOpacity
                 key={pt.id}
@@ -94,7 +98,12 @@ function ExerciseSwapModal({ visible, onClose, alternatives, reasoning, onSelect
 
           {reasoning && <Text style={styles.modalReasoning}>{reasoning}</Text>}
 
-          <ScrollView style={styles.modalScroll}>
+          <ScrollView
+            style={styles.modalScroll}
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
+          >
             {alternatives.map((alt, index) => (
               <TouchableOpacity
                 key={index}
@@ -210,18 +219,19 @@ export default function WorkoutScreen() {
     exerciseIndex: null,
   });
 
-  const suggestedType = suggestProgramType(userProfile?.activityLevel);
+  const trainingLevel = userProfile?.trainingLevel || userProfile?.activityLevel;
+  const suggestedType = suggestProgramType(trainingLevel);
 
   // Generate program on first load or when goal changes
   useEffect(() => {
     if (userProfile) {
       const goal = userProfile.goal || 'cut';
-      const type = suggestProgramType(userProfile.activityLevel);
+      const type = suggestProgramType(userProfile.trainingLevel || userProfile.activityLevel);
       const newProgram = generateProgram(type, goal);
       setProgram(newProgram);
       setActiveDay(Object.keys(newProgram.sessions)[0]);
     }
-  }, [userProfile?.goal, userProfile?.activityLevel]);
+  }, [userProfile?.goal, userProfile?.trainingLevel, userProfile?.activityLevel]);
 
   // Handle program type selection
   const handleSelectProgram = useCallback((programType) => {
@@ -389,6 +399,9 @@ export default function WorkoutScreen() {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
       >
         {/* Header */}
         <FadeInView style={styles.header}>
@@ -468,7 +481,14 @@ export default function WorkoutScreen() {
 
         {/* Day Tabs - bento style */}
         <FadeInView delay={300}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tabBar}
+            bounces={false}
+            alwaysBounceHorizontal={false}
+            overScrollMode="never"
+          >
             {dayKeys.map((dayKey, idx) => {
               const isActive = activeDay === dayKey;
               const colors = [COLORS.primary, COLORS.tertiary, COLORS.accent, COLORS.success];
@@ -590,7 +610,7 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.lg,
     gap: SPACING.md,
@@ -632,7 +652,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   heroContent: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
@@ -641,10 +661,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   heroRight: {
-    marginLeft: SPACING.md,
+    marginStart: SPACING.md,
   },
   heroBadge: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255,182,39,0.2)',
     paddingHorizontal: SPACING.sm,
@@ -667,13 +687,13 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   heroStatsRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACING.md,
     gap: SPACING.md,
   },
   heroStat: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
@@ -681,7 +701,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONTS.regular,
     fontWeight: 'bold',
-    marginRight: 4,
+    marginEnd: 4,
   },
   heroStatLabel: {
     color: COLORS.textMuted,
@@ -704,7 +724,7 @@ const styles = StyleSheet.create({
 
   // Program Info Bar
   programChip: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     marginBottom: SPACING.md,
@@ -729,7 +749,7 @@ const styles = StyleSheet.create({
 
   // Tabs - bento style
   tabBar: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.sm,
     paddingHorizontal: 2,
     marginBottom: SPACING.md,
@@ -758,7 +778,7 @@ const styles = StyleSheet.create({
 
   // Session Header
   sessionHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginVertical: SPACING.md,
@@ -767,7 +787,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   variateBg: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.md,
@@ -789,7 +809,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   variateButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
@@ -820,7 +840,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   exerciseHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.sm,
     gap: SPACING.sm,
@@ -850,7 +870,7 @@ const styles = StyleSheet.create({
 
   // Set Rows
   setRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.sm,
@@ -872,7 +892,7 @@ const styles = StyleSheet.create({
   },
   setFieldInput: {
     flex: 1,
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: SPACING.xs,
@@ -894,7 +914,7 @@ const styles = StyleSheet.create({
 
   // Finish Button
   finishButton: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.success,
@@ -924,7 +944,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   modalHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.md,
@@ -959,7 +979,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryDark + '20',
   },
   programOptionHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },

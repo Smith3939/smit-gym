@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { REMINDER_TYPES } from '../services/notificationService';
 import { useAuth } from '../context/AuthContext';
+import { PHYSICAL_ROW_CENTER, RTL_ICONS, RTL_ROW_CENTER } from '../utils/rtl';
 
 export default function SettingsScreen({ navigation }) {
   const { logout } = useAuth();
@@ -41,10 +42,15 @@ export default function SettingsScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      bounces={false}
+      alwaysBounceVertical={false}
+      overScrollMode="never"
+    >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBtn}>
-          <MaterialIcons name="arrow-forward" size={24} color={COLORS.text} />
+          <MaterialIcons name={RTL_ICONS.back} size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <MaterialIcons name="settings" size={24} color={COLORS.primary} />
@@ -75,7 +81,7 @@ export default function SettingsScreen({ navigation }) {
       <Text style={styles.sectionTitle}>כללי</Text>
 
       <TouchableOpacity style={styles.settingRow}>
-        <MaterialIcons name="chevron-left" size={24} color={COLORS.textMuted} />
+        <MaterialIcons name={RTL_ICONS.chevronForward} size={24} color={COLORS.textMuted} />
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>שפה</Text>
           <Text style={styles.settingDesc}>עברית</Text>
@@ -84,7 +90,7 @@ export default function SettingsScreen({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.settingRow}>
-        <MaterialIcons name="chevron-left" size={24} color={COLORS.textMuted} />
+        <MaterialIcons name={RTL_ICONS.chevronForward} size={24} color={COLORS.textMuted} />
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>גודל גופן</Text>
           <Text style={styles.settingDesc}>רגיל</Text>
@@ -93,7 +99,7 @@ export default function SettingsScreen({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.settingRow}>
-        <MaterialIcons name="chevron-left" size={24} color={COLORS.textMuted} />
+        <MaterialIcons name={RTL_ICONS.chevronForward} size={24} color={COLORS.textMuted} />
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>נושא</Text>
           <Text style={styles.settingDesc}>כהה</Text>
@@ -104,7 +110,7 @@ export default function SettingsScreen({ navigation }) {
       <Text style={styles.sectionTitle}>תמיכה</Text>
 
       <TouchableOpacity style={styles.settingRow}>
-        <MaterialIcons name="chevron-left" size={24} color={COLORS.textMuted} />
+        <MaterialIcons name={RTL_ICONS.chevronForward} size={24} color={COLORS.textMuted} />
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>דיווח בעיה</Text>
         </View>
@@ -112,7 +118,7 @@ export default function SettingsScreen({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.settingRow}>
-        <MaterialIcons name="chevron-left" size={24} color={COLORS.textMuted} />
+        <MaterialIcons name={RTL_ICONS.chevronForward} size={24} color={COLORS.textMuted} />
         <View style={styles.settingInfo}>
           <Text style={styles.settingTitle}>עזרה</Text>
         </View>
@@ -136,8 +142,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.xxl,
   },
   header: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     justifyContent: 'space-between',
     padding: SPACING.md,
   },
@@ -152,8 +157,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   headerCenter: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     gap: SPACING.sm,
   },
   title: {
@@ -171,8 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   settingRow: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...PHYSICAL_ROW_CENTER,
     backgroundColor: COLORS.surface,
     padding: SPACING.md,
     marginHorizontal: SPACING.md,
@@ -196,8 +199,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   logoutButton: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
+    ...RTL_ROW_CENTER,
     justifyContent: 'center',
     margin: SPACING.lg,
     padding: SPACING.md,

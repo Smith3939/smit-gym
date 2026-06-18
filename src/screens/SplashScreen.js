@@ -256,12 +256,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tagsRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
   },
   tag: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
     paddingVertical: 6,

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,8 +15,7 @@ import ProgressRing from '../components/ProgressRing';
 import AuroraBackground from '../components/AuroraBackground';
 import AnimatedAthlete from '../components/AnimatedAthlete';
 import { FadeInView } from '../components/AnimatedCard';
-
-const { width } = Dimensions.get('window');
+import { RTL_ICONS } from '../utils/rtl';
 
 const MOTIVATIONAL_QUOTES = [
   'הצלחה היא סכום של מאמצים קטנים שחוזרים על עצמם',
@@ -81,7 +79,7 @@ function ActionCard({ title, subtitle, icon, gradient, color, onPress, delay }) 
         <Text style={styles.actionTitle}>{title}</Text>
         <Text style={styles.actionSubtitle}>{subtitle}</Text>
         <View style={styles.actionArrow}>
-          <MaterialIcons name="arrow-back" size={16} color={color} />
+          <MaterialIcons name={RTL_ICONS.forward} size={16} color={color} />
         </View>
       </View>
     </GlassCard>
@@ -148,8 +146,17 @@ export default function HomeScreen({ navigation }) {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.md }]}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + SPACING.md,
+            paddingBottom: insets.bottom + 96,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
+        bounces={false}
+        alwaysBounceVertical={false}
+        overScrollMode="never"
       >
         {/* Top bar */}
         <FadeInView style={styles.topBar}>
@@ -305,7 +312,7 @@ export default function HomeScreen({ navigation }) {
             </View>
 
             <View style={styles.aiArrow}>
-              <MaterialIcons name="arrow-back" size={24} color={COLORS.tertiary} />
+              <MaterialIcons name={RTL_ICONS.forward} size={24} color={COLORS.tertiary} />
             </View>
           </View>
         </GlassCard>
@@ -321,7 +328,7 @@ export default function HomeScreen({ navigation }) {
               <MaterialIcons name="library-books" size={20} color={COLORS.textSecondary} />
             </View>
             <Text style={styles.utilityText}>תרגילים</Text>
-            <MaterialIcons name="chevron-left" size={18} color={COLORS.textMuted} />
+            <MaterialIcons name={RTL_ICONS.chevronForward} size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -333,7 +340,7 @@ export default function HomeScreen({ navigation }) {
               <MaterialIcons name="show-chart" size={20} color={COLORS.textSecondary} />
             </View>
             <Text style={styles.utilityText}>משקל</Text>
-            <MaterialIcons name="chevron-left" size={18} color={COLORS.textMuted} />
+            <MaterialIcons name={RTL_ICONS.chevronForward} size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
         </View>
 
@@ -357,7 +364,7 @@ const styles = StyleSheet.create({
 
   // Top bar
   topBar: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.xl,
@@ -384,7 +391,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.background,
   },
   brandPill: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -439,7 +446,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
   },
   heroCardContent: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
   },
   heroLeft: {
@@ -456,7 +463,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   heroStreakBadge: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(251,191,36,0.15)',
     paddingHorizontal: SPACING.sm,
@@ -498,7 +505,7 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.sm,
   },
   heroBottomRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
@@ -510,7 +517,7 @@ const styles = StyleSheet.create({
 
   // Stats
   statsRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.md,
     marginBottom: SPACING.md,
   },
@@ -521,7 +528,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   statPillTop: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
@@ -541,7 +548,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   statValueRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'baseline',
     gap: 4,
   },
@@ -575,7 +582,7 @@ const styles = StyleSheet.create({
 
   // Section header
   sectionHeader: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     marginTop: SPACING.md,
     marginBottom: SPACING.md,
@@ -594,13 +601,15 @@ const styles = StyleSheet.create({
 
   // Action cards
   actionsGrid: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SPACING.md,
     marginBottom: SPACING.md,
   },
   actionCard: {
-    width: (width - SPACING.md * 2 - SPACING.md) / 2,
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: 140,
     padding: 0,
     minHeight: 130,
   },
@@ -642,7 +651,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   aiCardInner: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
     gap: SPACING.md,
@@ -659,7 +668,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   aiTitleRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
   },
@@ -669,7 +678,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   aiTag: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(52,211,153,0.15)',
     paddingHorizontal: 6,
@@ -697,17 +706,17 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   aiArrow: {
-    marginLeft: SPACING.xs,
+    marginStart: SPACING.xs,
   },
 
   // Utility row
   utilityRow: {
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: SPACING.md,
   },
   utilityCard: {
     flex: 1,
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     padding: SPACING.md,
