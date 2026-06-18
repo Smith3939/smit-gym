@@ -66,6 +66,7 @@ export default function ProfileScreen({ navigation }) {
       await updateProfile(profile);
       toast.success('הפרטים נשמרו בהצלחה! ✅');
     } catch (e) {
+      console.log('Profile save failed:', e);
       toast.error('לא הצלחנו לשמור, נסה שוב');
     }
   };

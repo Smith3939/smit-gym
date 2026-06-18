@@ -5,7 +5,7 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
 export async function registerUser(email, password, name) {
@@ -54,10 +54,10 @@ export async function resetPassword(email) {
 }
 
 export async function updateUserProfile(uid, data) {
-  await updateDoc(doc(db, 'users', uid), {
+  await setDoc(doc(db, 'users', uid), {
     ...data,
     updatedAt: serverTimestamp(),
-  });
+  }, { merge: true });
 }
 
 export async function getUserProfile(uid) {
