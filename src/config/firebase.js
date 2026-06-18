@@ -4,6 +4,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const defaultAuthDomain = 'smith-gymai.firebaseapp.com';
+const productionAuthDomain = 'fitness-alpha-woad.vercel.app';
 
 function getAuthDomain() {
   if (Platform.OS !== 'web' || typeof window === 'undefined') {
@@ -13,7 +14,7 @@ function getAuthDomain() {
   const hostname = window.location.hostname;
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
 
-  return isLocalhost ? defaultAuthDomain : hostname;
+  return isLocalhost ? defaultAuthDomain : productionAuthDomain;
 }
 
 const firebaseConfig = {
