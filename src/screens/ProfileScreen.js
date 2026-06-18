@@ -67,7 +67,10 @@ export default function ProfileScreen({ navigation }) {
       toast.success('הפרטים נשמרו בהצלחה! ✅');
     } catch (e) {
       console.log('Profile save failed:', e);
-      toast.error('לא הצלחנו לשמור, נסה שוב');
+      const message = e.code === 'permission-denied'
+        ? 'אין הרשאה לשמור את הפרופיל. צריך לעדכן את חוקי Firestore'
+        : 'לא הצלחנו לשמור, נסה שוב';
+      toast.error(message);
     }
   };
 

@@ -54,10 +54,11 @@ export async function resetPassword(email) {
 }
 
 export async function updateUserProfile(uid, data) {
-  await setDoc(doc(db, 'users', uid), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  }, { merge: true });
+  const cleanData = Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined)
+  );
+
+  await setDoc(doc(db, 'users', uid), cleanData, { merge: true });
 }
 
 export async function getUserProfile(uid) {
