@@ -3,6 +3,7 @@ import { Animated, TouchableOpacity, Text, StyleSheet, View, ActivityIndicator }
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 /**
  * Modern button with gradient, glow, and press animation
@@ -29,13 +30,13 @@ export default function ModernButton({
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 0.97,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         friction: 7,
       }),
       Animated.timing(opacity, {
         toValue: 0.8,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
   };
@@ -44,13 +45,13 @@ export default function ModernButton({
     Animated.parallel([
       Animated.spring(scale, {
         toValue: 1,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         friction: 7,
       }),
       Animated.timing(opacity, {
         toValue: 1,
         duration: 100,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
   };

@@ -5,6 +5,7 @@ import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { COLORS, FONTS, SPACING, GRADIENTS, SHADOWS } from '../config/theme';
 import AuroraBackground from '../components/AuroraBackground';
 import { MaterialIcons } from '@expo/vector-icons';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,35 +25,35 @@ export default function SplashScreen() {
         Animated.spring(ringScale, {
           toValue: 1,
           friction: 6,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(logoOpacity, {
           toValue: 1,
           duration: 600,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]),
       Animated.spring(logoScale, {
         toValue: 1,
         friction: 5,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.parallel([
         Animated.timing(titleOpacity, {
           toValue: 1,
           duration: 500,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.spring(titleTranslate, {
           toValue: 0,
           friction: 7,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]),
       Animated.timing(taglineOpacity, {
         toValue: 1,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
 
@@ -61,7 +62,7 @@ export default function SplashScreen() {
         toValue: 1,
         duration: 6000,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       })
     ).start();
 
@@ -70,12 +71,12 @@ export default function SplashScreen() {
         Animated.timing(pulse, {
           toValue: 1.08,
           duration: 1200,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(pulse, {
           toValue: 1,
           duration: 1200,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     ).start();

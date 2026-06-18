@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 export default function GlassCard({
   children,
@@ -24,12 +25,12 @@ export default function GlassCard({
         toValue: 1,
         duration: 600,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.spring(translateY, {
         toValue: 0,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         friction: 8,
       }),
     ]).start();
@@ -39,7 +40,7 @@ export default function GlassCard({
     if (!onPress) return;
     Animated.spring(scale, {
       toValue: 0.97,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       friction: 7,
     }).start();
   };
@@ -48,7 +49,7 @@ export default function GlassCard({
     if (!onPress) return;
     Animated.spring(scale, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       friction: 7,
     }).start();
   };

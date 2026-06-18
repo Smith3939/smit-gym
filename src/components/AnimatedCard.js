@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Animated, TouchableOpacity, StyleSheet, View } from 'react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 export function FadeInView({ children, delay = 0, duration = 400, style }) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -12,12 +13,12 @@ export function FadeInView({ children, delay = 0, duration = 400, style }) {
         toValue: 1,
         duration,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.spring(translateY, {
         toValue: 0,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         friction: 8,
       }),
     ]).start();
@@ -44,7 +45,7 @@ export function AnimatedButton({ onPress, children, style, disabled }) {
   const handlePressIn = () => {
     Animated.spring(scale, {
       toValue: 0.95,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       friction: 7,
     }).start();
   };
@@ -52,7 +53,7 @@ export function AnimatedButton({ onPress, children, style, disabled }) {
   const handlePressOut = () => {
     Animated.spring(scale, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       friction: 7,
     }).start();
   };
@@ -84,12 +85,12 @@ export function AnimatedCard({ children, style, onPress, delay = 0 }) {
         toValue: 1,
         duration: 500,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.spring(translateY, {
         toValue: 0,
         delay,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         friction: 7,
       }),
     ]).start();
@@ -99,7 +100,7 @@ export function AnimatedCard({ children, style, onPress, delay = 0 }) {
     if (!onPress) return;
     Animated.spring(scale, {
       toValue: 0.96,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       friction: 7,
     }).start();
   };
@@ -108,7 +109,7 @@ export function AnimatedCard({ children, style, onPress, delay = 0 }) {
     if (!onPress) return;
     Animated.spring(scale, {
       toValue: 1,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
       friction: 7,
     }).start();
   };

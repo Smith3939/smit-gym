@@ -3,6 +3,7 @@ import { View, StyleSheet, Animated, Easing, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { COLORS } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,13 +24,13 @@ export default function AuroraBackground({ intensity = 0.5 }) {
             toValue: 1,
             duration,
             easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
           Animated.timing(anim, {
             toValue: 0,
             duration,
             easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ])
       ).start();

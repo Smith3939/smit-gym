@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 export function LoadingSpinner({ size = 48, text }) {
   const rotation = useRef(new Animated.Value(0)).current;
@@ -12,7 +13,7 @@ export function LoadingSpinner({ size = 48, text }) {
         toValue: 1,
         duration: 1200,
         easing: Easing.linear,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       })
     ).start();
   }, []);

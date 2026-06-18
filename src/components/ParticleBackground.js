@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { COLORS } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,25 +23,25 @@ function Particle({ delay = 0, size = 4, color = COLORS.primary, opacity = 0.3 }
           Animated.timing(opacityAnim, {
             toValue: opacity,
             duration: 1000,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
             delay,
           }),
           Animated.timing(opacityAnim, {
             toValue: 0,
             duration: 3000,
-            useNativeDriver: true,
+            useNativeDriver: USE_NATIVE_DRIVER,
           }),
         ]),
         Animated.timing(translateY, {
           toValue: -150 - Math.random() * 100,
           duration: 4000,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
           delay,
         }),
         Animated.timing(translateX, {
           toValue: (Math.random() - 0.5) * 80,
           duration: 4000,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
           delay,
         }),
       ]).start(() => animate());

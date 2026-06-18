@@ -16,6 +16,7 @@ import { useToast } from '../components/Toast';
 import { FadeInView } from '../components/AnimatedCard';
 import GlassCard from '../components/GlassCard';
 import AuroraBackground from '../components/AuroraBackground';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 const { width } = Dimensions.get('window');
 
@@ -34,14 +35,14 @@ export default function LoginScreen({ navigation }) {
     Animated.spring(logoScale, {
       toValue: 1,
       friction: 5,
-      useNativeDriver: true,
+      useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
 
     Animated.loop(
       Animated.timing(logoRotation, {
         toValue: 1,
         duration: 8000,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       })
     ).start();
 
@@ -50,12 +51,12 @@ export default function LoginScreen({ navigation }) {
         Animated.timing(glowPulse, {
           toValue: 1,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(glowPulse, {
           toValue: 0.5,
           duration: 1500,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     ).start();
@@ -93,7 +94,10 @@ export default function LoginScreen({ navigation }) {
       }
     } catch (error) {
       if (error.code !== 'auth/popup-closed-by-user') {
-        toast.error('לא הצלחנו להתחבר עם Google');
+        const msg = error.code === 'auth/unauthorized-domain'
+          ? 'יש להוסיף את כתובת האתר לרשימת הדומיינים המורשים ב-Firebase'
+          : 'לא הצלחנו להתחבר עם Google';
+        toast.error(msg);
       }
     }
     setLoading(false);

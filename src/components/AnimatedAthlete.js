@@ -4,6 +4,7 @@ import Svg, {
   Circle, Path, Defs, LinearGradient, Stop, Ellipse, Rect, G,
 } from 'react-native-svg';
 import { COLORS } from '../config/theme';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 /**
  * Animated athlete doing squats with a barbell
@@ -23,7 +24,7 @@ export default function AnimatedAthlete({ size = 200 }) {
           toValue: 1,
           duration: 1400,
           easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         // Hold at bottom briefly
         Animated.delay(150),
@@ -32,7 +33,7 @@ export default function AnimatedAthlete({ size = 200 }) {
           toValue: 0,
           duration: 1100,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         // Hold at top briefly
         Animated.delay(300),
@@ -45,12 +46,12 @@ export default function AnimatedAthlete({ size = 200 }) {
         Animated.timing(glow, {
           toValue: 1,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(glow, {
           toValue: 0.6,
           duration: 1800,
-          useNativeDriver: true,
+          useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
     ).start();

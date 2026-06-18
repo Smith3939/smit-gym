@@ -18,6 +18,7 @@ import ProgressRing from '../components/ProgressRing';
 import { FadeInView } from '../components/AnimatedCard';
 import AuroraBackground from '../components/AuroraBackground';
 import { useToast } from '../components/Toast';
+import { USE_NATIVE_DRIVER } from '../utils/animation';
 
 const { width } = Dimensions.get('window');
 
@@ -100,13 +101,13 @@ function RecipeDetail({ recipe, calorieBudget, onClose }) {
     Animated.parallel([
       Animated.spring(slideAnim, {
         toValue: 0,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
         friction: 8,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start();
   }, []);
@@ -116,12 +117,12 @@ function RecipeDetail({ recipe, calorieBudget, onClose }) {
       Animated.timing(slideAnim, {
         toValue: width,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 250,
-        useNativeDriver: true,
+        useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start(() => onClose());
   };
