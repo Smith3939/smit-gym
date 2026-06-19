@@ -297,6 +297,7 @@ function SwapModal({ visible, onClose, alternatives, onSelect, reasoning }) {
             bounces={false}
             alwaysBounceVertical={false}
             overScrollMode="never"
+            nestedScrollEnabled={true}
           >
             {alternatives.map((alt, index) => (
               <TouchableOpacity
@@ -486,6 +487,7 @@ function FoodPickerModal({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoryPicker}
             bounces={false}
+            nestedScrollEnabled={true}
           >
             {foodCategoriesForPicker.map((item) => (
               <TouchableOpacity
@@ -508,7 +510,7 @@ function FoodPickerModal({
             ))}
           </ScrollView>
 
-          <ScrollView style={styles.foodPickerList} bounces={false}>
+          <ScrollView style={styles.foodPickerList} bounces={false} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
             {category?.items.map((food) => (
               <TouchableOpacity
                 key={food.id}
