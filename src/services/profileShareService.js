@@ -95,8 +95,8 @@ export async function loadSharedProfile(shareId) {
 
 async function buildShareSnapshot(uid, userProfile, permissions) {
   const [workouts, nutrition] = await Promise.all([
-    permissions.workouts ? loadWorkoutSnapshot(uid) : null,
-    permissions.nutrition ? loadNutritionSnapshot(userProfile) : null,
+    permissions.workouts ? safelyLoadSnapshot(() => loadWorkoutSnapshot(uid), emptyWorkoutSnapshot()) : null,
+    permissions.nutrition ? safelyLoadSnapshot(() => loadNutritionSnapshot(userProfile), null) : null,
   ]);
 
   return {
@@ -104,6 +104,21 @@ async function buildShareSnapshot(uid, userProfile, permissions) {
     workouts,
     nutrition,
     generatedAt: new Date().toISOString(),
+  };
+}
+
+async function safelyLoadSnapshot(loader, fallback) {
+  try {
+    return await loader();
+  } catch (error) {
+    console.log('Profile share snapshot section failed:', error);
+    return fallback;
+  }
+}
+
+function emptyWorkoutSnapshot() {
+  return {
+    recentSessions: [],
   };
 }
 
