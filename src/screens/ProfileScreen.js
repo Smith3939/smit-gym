@@ -184,7 +184,12 @@ export default function ProfileScreen({ navigation }) {
         permissions: sharePermissions,
       });
       setShareInfo(info);
-      await shareGeneratedLink(info);
+      try {
+        await shareGeneratedLink(info);
+      } catch (shareError) {
+        console.log('Opening share sheet failed:', shareError);
+        toast.success('הקישור נוצר. אפשר להעתיק את הקוד מהמסך');
+      }
     } catch (e) {
       console.log('Profile share failed:', e);
       toast.error('לא הצלחנו ליצור שיתוף, נסה שוב');

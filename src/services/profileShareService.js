@@ -7,6 +7,10 @@ import { generateDailyPlan } from './mealPlanGenerator';
 const SHARE_COLLECTION = 'sharedProfiles';
 const RECENT_WORKOUT_LIMIT = 12;
 const DEFAULT_EXPIRY_DAYS = 30;
+const DEFAULT_SHARE_BASE_URL = 'https://smithgym.vercel.app';
+const ENV_SHARE_BASE_URL =
+  typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_SHARE_BASE_URL : undefined;
+const SHARE_BASE_URL = ENV_SHARE_BASE_URL || DEFAULT_SHARE_BASE_URL;
 
 const ROLE_LABELS = {
   friend: 'חבר לאימון',
@@ -36,10 +40,10 @@ export const SHARE_PRESETS = {
 
 export function getShareUrl(shareId) {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    return `${window.location.origin}/share/${shareId}`;
+    return buildWebShareUrl(window.location.origin, shareId);
   }
 
-  return `smitgym://share/${shareId}`;
+  return buildWebShareUrl(SHARE_BASE_URL, shareId);
 }
 
 export async function createProfileShare(uid, userProfile, options) {
@@ -121,18 +125,29 @@ function buildProfileSnapshot(userProfile = {}, permissions) {
 }
 
 async function loadWorkoutSnapshot(uid) {
-  const logsQuery = query(
-    collection(db, 'users', uid, 'workoutLogs'),
-    orderBy('createdAt', 'desc'),
-    limit(RECENT_WORKOUT_LIMIT)
-  );
-  const logsSnapshot = await getDocs(logsQuery);
+  const [currentLogsSnapshot, legacyLogsSnapshot] = await Promise.all([
+    getDocs(query(
+      collection(db, 'users', uid, 'workout', 'logs', 'sessions'),
+      orderBy('completedAt', 'desc'),
+      limit(RECENT_WORKOUT_LIMIT)
+    )),
+    getDocs(query(
+      collection(db, 'users', uid, 'workoutLogs'),
+      orderBy('createdAt', 'desc'),
+      limit(RECENT_WORKOUT_LIMIT)
+    )),
+  ]);
+
+  const sessions = [
+    ...currentLogsSnapshot.docs.map((logDoc) => normalizeWorkoutSession(logDoc, 'completedAt')),
+    ...legacyLogsSnapshot.docs.map((logDoc) => normalizeWorkoutSession(logDoc, 'createdAt')),
+  ]
+    .sort((a, b) => getTimestampMillis(b.shareSortTime) - getTimestampMillis(a.shareSortTime))
+    .slice(0, RECENT_WORKOUT_LIMIT)
+    .map(({ shareSortTime, ...session }) => session);
 
   return {
-    recentSessions: logsSnapshot.docs.map((logDoc) => ({
-      id: logDoc.id,
-      ...logDoc.data(),
-    })),
+    recentSessions: sessions,
   };
 }
 
@@ -157,6 +172,30 @@ function loadNutritionSnapshot(userProfile) {
 function createShareId(role) {
   const entropy = Math.random().toString(36).slice(2, 10);
   return `${role}-${Date.now().toString(36)}-${entropy}`;
+}
+
+function buildWebShareUrl(baseUrl, shareId) {
+  const normalizedBase = (baseUrl || DEFAULT_SHARE_BASE_URL).replace(/\/+$/, '');
+  return `${normalizedBase}/share/${encodeURIComponent(shareId)}`;
+}
+
+function normalizeWorkoutSession(logDoc, timestampField) {
+  const data = logDoc.data();
+
+  return {
+    id: logDoc.id,
+    ...data,
+    shareSortTime: data[timestampField] || data.completedAt || data.createdAt || data.date || null,
+  };
+}
+
+function getTimestampMillis(value) {
+  if (!value) return 0;
+  if (typeof value.toMillis === 'function') return value.toMillis();
+  if (typeof value === 'number') return value;
+
+  const parsed = new Date(value).getTime();
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function addDays(date, days) {
