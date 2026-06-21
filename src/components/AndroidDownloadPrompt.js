@@ -9,14 +9,13 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import ModernButton from './ModernButton';
 import { BORDER_RADIUS, COLORS, FONTS, SHADOWS, SPACING } from '../config/theme';
 import { RTL_ROW_CENTER, RTL_TEXT } from '../utils/rtl';
 
 const DISMISSED_STORAGE_KEY = '@smit_gym_app_download_prompt_dismissed_v2';
 const ANDROID_APP_URL = 'https://play.google.com/store/apps/details?id=com.smitgym.app';
-const IOS_APP_URL = 'https://apps.apple.com/il/app/smit-gym/id1234567890'; // TODO: Update with real App Store ID when available
 
 function getDeviceOS() {
   if (Platform.OS !== 'web' || typeof navigator === 'undefined') {
@@ -29,11 +28,6 @@ function getDeviceOS() {
     return 'android';
   }
   
-  // iOS detection (including iPad on iOS 13+)
-  if (/iPad|iPhone|iPod/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
-    return 'ios';
-  }
-
   return null;
 }
 
@@ -92,13 +86,10 @@ export default function AppDownloadPrompt() {
 
   const downloadApp = async () => {
     await dismiss();
-    const url = deviceOS === 'ios' ? IOS_APP_URL : ANDROID_APP_URL;
-    await Linking.openURL(url);
+    await Linking.openURL(ANDROID_APP_URL);
   };
 
   if (!visible) return null;
-
-  const isIOS = deviceOS === 'ios';
 
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={dismiss}>
@@ -114,22 +105,18 @@ export default function AppDownloadPrompt() {
             <MaterialIcons name="close" size={22} color={COLORS.textSecondary} />
           </TouchableOpacity>
 
-          <View style={[styles.iconWrap, isIOS && styles.iconWrapIos]}>
-            {isIOS ? (
-              <FontAwesome5 name="apple" size={32} color={COLORS.primary} />
-            ) : (
-              <MaterialIcons name="android" size={34} color={COLORS.accent} />
-            )}
+          <View style={styles.iconWrap}>
+            <MaterialIcons name="android" size={34} color={COLORS.accent} />
           </View>
 
           <Text style={styles.title}>הורידו את האפליקציה לטלפון</Text>
           <Text style={styles.body}>
-            משתמשים ב-{isIOS ? 'iPhone' : 'אנדרואיד'}? קבלו חוויה מהירה ונוחה יותר עם אפליקציית Smit Gym.
+            משתמשים באנדרואיד? קבלו חוויה מהירה ונוחה יותר עם אפליקציית Smit Gym.
           </Text>
 
           <ModernButton
-            title={isIOS ? 'להורדה ב-App Store' : 'להורדה ב-Google Play'}
-            icon={isIOS ? 'apple' : 'file-download'}
+            title="להורדה ב-Google Play"
+            icon="file-download"
             onPress={downloadApp}
             glow
             style={styles.primaryButton}
@@ -185,10 +172,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(163, 230, 53, 0.12)',
     borderWidth: 1,
     borderColor: 'rgba(163, 230, 53, 0.28)',
-  },
-  iconWrapIos: {
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    borderColor: 'rgba(56, 189, 248, 0.28)',
   },
   title: {
     marginBottom: SPACING.sm,
