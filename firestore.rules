@@ -1,23 +1,24 @@
 rules_version = '2';
 
-// Smit Gym - Firestore Security Rules
+// Smit Gym - Firestore Security Rules (private data + social network)
 //
-// DEPLOY THESE before any real user signs up. Currently the database is in
-// "test mode" (open to the world). To deploy:
-//   1. Firebase Console > Firestore Database > Rules tab
-//   2. Paste this file's contents, click "Publish"
-//   (or: firebase deploy --only firestore:rules with the Firebase CLI)
+// DEPLOY THESE before any real user signs up:
+//   Firebase Console > Firestore Database > Rules tab > paste > Publish
+//   (or: firebase deploy --only firestore:rules)
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // A user can only read/write their own profile document and its subcollections
-    // (weightHistory, workoutLogs, waterLog, etc.)
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // ── Private data: only the owner ─────────────────────────────────────
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if signedIn() && request.auth.uid == userId;
 
       match /{subcollection=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if signedIn() && request.auth.uid == userId;
       }
     }
 
@@ -29,7 +30,37 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
 
-    // Deny everything else by default
+    // ── Public profiles: any signed-in user may read, only owner writes ──
+    match /publicProfiles/{userId} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    // ── Feed posts: read by all signed-in, create/delete by author only ──
+    match /posts/{postId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+
+      // Likes: one doc per user, each user manages only their own like
+      match /likes/{likeUid} {
+        allow read: if signedIn();
+        allow create, delete: if signedIn() && request.auth.uid == likeUid;
+      }
+    }
+
+    // ── Buddy requests: visible to the two people involved ───────────────
+    match /buddyRequests/{requestId} {
+      allow read: if signedIn() &&
+        (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+      // Only the recipient can accept/decline
+      allow update: if signedIn() && resource.data.toUid == request.auth.uid;
+      allow delete: if signedIn() &&
+        (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+    }
+
+    // ── Deny everything else ─────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }

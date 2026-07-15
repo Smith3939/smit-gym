@@ -5,8 +5,10 @@ import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import AuroraBackground from '../components/AuroraBackground';
+import Avatar from '../components/Avatar';
 import { calculateBMI, calculateBMR, calculateTDEE, calculateTargetCalories } from '../services/nutritionEngine';
 import { createProfileShare, SHARE_PRESETS } from '../services/profileShareService';
+import { upsertPublicProfile, pickAndCompressImage } from '../services/socialService';
 
 export default function ProfileScreen({ navigation }) {
   const { user, userProfile, updateProfile, logout } = useAuth();
@@ -21,6 +23,10 @@ export default function ProfileScreen({ navigation }) {
     activityLevel: 'moderate',
     trainingLevel: 'moderate',
     dailyActivityLevel: 'light',
+    gymName: '',
+    city: '',
+    bio: '',
+    photo: null,
   });
   const [shareRole, setShareRole] = useState('coach');
   const [sharePermissions, setSharePermissions] = useState(SHARE_PRESETS.coach.permissions);
@@ -40,9 +46,25 @@ export default function ProfileScreen({ navigation }) {
         activityLevel: userProfile.activityLevel || 'moderate',
         trainingLevel: userProfile.trainingLevel || userProfile.activityLevel || 'moderate',
         dailyActivityLevel: userProfile.dailyActivityLevel || 'light',
+        gymName: userProfile.gymName || '',
+        city: userProfile.city || '',
+        bio: userProfile.bio || '',
+        photo: userProfile.photo || null,
       });
     }
   }, [userProfile]);
+
+  const handlePickPhoto = async () => {
+    try {
+      const img = await pickAndCompressImage({ maxWidth: 400, quality: 0.6 });
+      if (img) {
+        setProfile((prev) => ({ ...prev, photo: img }));
+        toast.info('לחץ "שמור פרטים" כדי לשמור את התמונה');
+      }
+    } catch (e) {
+      toast.error('בחירת התמונה נכשלה');
+    }
+  };
 
   // Calculate live stats
   const weightNum = Number(profile.weight) || 0;
@@ -106,6 +128,15 @@ export default function ProfileScreen({ navigation }) {
   const saveProfile = async () => {
     try {
       await updateProfile(profile);
+      // Sync the public part so the community can see it
+      await upsertPublicProfile(user.uid, {
+        name: profile.name,
+        photo: profile.photo || null,
+        bio: profile.bio || '',
+        gymName: profile.gymName || '',
+        city: profile.city || '',
+        goal: profile.goal,
+      });
       toast.success('הפרטים נשמרו בהצלחה! ✅');
     } catch (e) {
       console.log('Profile save failed:', e);
@@ -208,10 +239,14 @@ export default function ProfileScreen({ navigation }) {
       overScrollMode="never"
     >
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <MaterialIcons name="person" size={60} color={COLORS.primary} />
-        </View>
+        <TouchableOpacity onPress={handlePickPhoto} activeOpacity={0.8}>
+          <Avatar photo={profile.photo} size={96} />
+          <View style={styles.cameraBadge}>
+            <MaterialIcons name="photo-camera" size={16} color={COLORS.text} />
+          </View>
+        </TouchableOpacity>
         <Text style={styles.title}>הפרופיל שלי</Text>
+        <Text style={styles.photoHint}>לחץ על התמונה כדי להחליף</Text>
       </View>
 
       {/* Live Stats Card */}
@@ -245,6 +280,47 @@ export default function ProfileScreen({ navigation }) {
           />
         </View>
 
+        <Text style={styles.sectionTitle}>קהילה 👥</Text>
+        <View style={styles.row}>
+          <View style={[styles.field, { flex: 1 }]}>
+            <Text style={styles.label}>חדר כושר</Text>
+            <TextInput
+              style={styles.input}
+              value={profile.gymName}
+              onChangeText={(text) => setProfile({ ...profile, gymName: text })}
+              placeholder="לדוגמא: הולמס פלייס רעננה"
+              placeholderTextColor={COLORS.textMuted}
+              textAlign="right"
+            />
+          </View>
+        </View>
+        <View style={styles.row}>
+          <View style={[styles.field, { flex: 1 }]}>
+            <Text style={styles.label}>עיר</Text>
+            <TextInput
+              style={styles.input}
+              value={profile.city}
+              onChangeText={(text) => setProfile({ ...profile, city: text })}
+              placeholder="לדוגמא: תל אביב"
+              placeholderTextColor={COLORS.textMuted}
+              textAlign="right"
+            />
+          </View>
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>קצת עליי (יוצג בפרופיל הציבורי)</Text>
+          <TextInput
+            style={[styles.input, { minHeight: 60 }]}
+            value={profile.bio}
+            onChangeText={(text) => setProfile({ ...profile, bio: text })}
+            placeholder="מתאמן 4 שנים, אוהב רגליים כבדות 🦵"
+            placeholderTextColor={COLORS.textMuted}
+            textAlign="right"
+            multiline
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>נתונים אישיים</Text>
         <View style={styles.row}>
           <View style={[styles.field, { flex: 1 }]}>
             <Text style={styles.label}>גיל</Text>
@@ -477,6 +553,24 @@ const styles = StyleSheet.create({
     fontSize: FONTS.xlarge,
     fontWeight: 'bold',
     marginTop: SPACING.md,
+  },
+  cameraBadge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  photoHint: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+    marginTop: SPACING.xs,
   },
   form: {
     padding: SPACING.lg,

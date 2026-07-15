@@ -24,6 +24,7 @@ import AuroraBackground from '../components/AuroraBackground';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { saveWorkoutLog } from '../services/authService';
+import { createPost } from '../services/socialService';
 import {
   generateProgram,
   getAvailableProgramTypes,
@@ -335,6 +336,32 @@ export default function WorkoutScreen() {
     }));
   }, []);
 
+  // Share the current session to the community feed
+  const handleShareWorkout = useCallback(async () => {
+    const session = program?.sessions?.[activeDay];
+    if (!session || !user) return;
+    try {
+      await createPost({
+        uid: user.uid,
+        authorName: userProfile?.name || user?.displayName || 'מתאמן',
+        authorPhoto: userProfile?.photo || null,
+        authorGym: userProfile?.gymName || null,
+        text: `סיימתי את ${session.name} 🔥`,
+        image: null,
+        type: 'workout',
+        payload: {
+          name: session.name,
+          exercises: session.exercises
+            .filter((ex) => !ex.isWarmup)
+            .map((ex) => ({ name: ex.name, sets: ex.sets, reps: ex.reps })),
+        },
+      });
+      toast.success('האימון שותף לקהילה! 💪');
+    } catch (e) {
+      toast.error('השיתוף נכשל, נסה שוב');
+    }
+  }, [program, activeDay, user, userProfile, toast]);
+
   // Finish workout - save the session + logged sets to Firestore
   const handleFinishWorkout = useCallback(async () => {
     if (!user) {
@@ -567,6 +594,16 @@ export default function WorkoutScreen() {
               </>
             )}
           </LinearGradient>
+        </TouchableOpacity>
+
+        {/* Share to community */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleShareWorkout}
+          style={styles.shareButton}
+        >
+          <MaterialIcons name="share" size={20} color={COLORS.primary} />
+          <Text style={styles.shareButtonText}>שתף את האימון לקהילה</Text>
         </TouchableOpacity>
 
         {/* Modals */}
@@ -928,6 +965,22 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
+  },
+  shareButton: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '60',
+  },
+  shareButtonText: {
+    color: COLORS.primary,
+    fontSize: FONTS.regular,
+    fontWeight: '700',
   },
 
   // Modal

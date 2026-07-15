@@ -15,6 +15,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/Toast';
+import { createPost } from '../services/socialService';
 import { calculateNutritionPlan, distributeMeals } from '../services/nutritionEngine';
 import { generateDailyPlan, getAlternatives, calculateFoodMacros } from '../services/mealPlanGenerator';
 import { requestFoodSwap } from '../services/aiNutritionService';
@@ -565,6 +567,7 @@ function FoodPickerModal({
 // ─── Main Nutrition Screen ──────────────────────────────────────────────────
 export default function NutritionScreen({ navigation }) {
   const { user, userProfile } = useAuth();
+  const toast = useToast();
   const [nutritionPlan, setNutritionPlan] = useState(null);
   const [dailyMealPlan, setDailyMealPlan] = useState(null);
   const [expandedMeal, setExpandedMeal] = useState(null);
@@ -880,6 +883,33 @@ export default function NutritionScreen({ navigation }) {
 
   const mealOrder = ['breakfast', 'lunch', 'pre_workout', 'dinner', 'free_calories'];
 
+  const handleShareMenu = async () => {
+    if (!nutritionPlan || !user) return;
+    try {
+      await createPost({
+        uid: user.uid,
+        authorName: userProfile?.name || 'מתאמן',
+        authorPhoto: userProfile?.photo || null,
+        authorGym: userProfile?.gymName || null,
+        text: 'התפריט היומי שלי 🥗',
+        image: null,
+        type: 'meal',
+        payload: {
+          calories: nutritionPlan.targetCalories,
+          protein: nutritionPlan.macros?.protein || 0,
+          carbs: nutritionPlan.macros?.carbs || 0,
+          fat: nutritionPlan.macros?.fat || 0,
+          meals: dailyMealPlan
+            ? mealOrder.map((id) => dailyMealPlan[id]?.name).filter(Boolean)
+            : [],
+        },
+      });
+      toast.success('התפריט שותף לקהילה! 🥗');
+    } catch (e) {
+      toast.error('השיתוף נכשל, נסה שוב');
+    }
+  };
+
   const targetCalories = nutritionPlan?.targetCalories || 2000;
   const consumedTotals = sumFoodLog(foodLog);
   const consumedCalories = consumedTotals.calories;
@@ -1023,6 +1053,18 @@ export default function NutritionScreen({ navigation }) {
           );
         })}
 
+        {/* Share menu to community */}
+        {dailyMealPlan && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleShareMenu}
+            style={styles.shareMenuButton}
+          >
+            <MaterialIcons name="share" size={20} color={COLORS.success} />
+            <Text style={styles.shareMenuButtonText}>שתף את התפריט לקהילה</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Swap Modal */}
         <SwapModal
           visible={swapModal.visible}
@@ -1055,6 +1097,22 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  shareMenuButton: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.5)',
+  },
+  shareMenuButtonText: {
+    color: COLORS.success,
+    fontSize: FONTS.regular,
+    fontWeight: '700',
   },
   container: {
     flex: 1,

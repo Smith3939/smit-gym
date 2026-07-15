@@ -22,6 +22,8 @@ import WaterTrackingScreen from '../screens/WaterTrackingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import RecipeGeneratorScreen from '../screens/RecipeGeneratorScreen';
 import SharedProfileScreen from '../screens/SharedProfileScreen';
+import CommunityScreen from '../screens/CommunityScreen';
+import PublicProfileScreen from '../screens/PublicProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -48,6 +50,7 @@ function HomeTabs() {
           if (route.name === 'HomeTab') iconName = 'home';
           else if (route.name === 'WorkoutTab') iconName = 'fitness-center';
           else if (route.name === 'NutritionTab') iconName = 'restaurant';
+          else if (route.name === 'CommunityTab') iconName = 'groups';
           else if (route.name === 'AIChat') iconName = 'smart-toy';
           else if (route.name === 'Profile') iconName = 'person';
           return <MaterialIcons name={iconName} size={size} color={color} />;
@@ -73,6 +76,7 @@ function HomeTabs() {
       <Tab.Screen name="HomeTab" component={HomeScreen} options={{ tabBarLabel: 'ראשי' }} />
       <Tab.Screen name="WorkoutTab" component={WorkoutScreen} options={{ tabBarLabel: 'אימונים' }} />
       <Tab.Screen name="NutritionTab" component={NutritionScreen} options={{ tabBarLabel: 'תזונה' }} />
+      <Tab.Screen name="CommunityTab" component={CommunityScreen} options={{ tabBarLabel: 'קהילה' }} />
       <Tab.Screen name="AIChat" component={AIChatScreen} options={{ tabBarLabel: 'מאמן AI' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'פרופיל' }} />
     </Tab.Navigator>
@@ -96,6 +100,7 @@ export default function AppNavigator() {
           <Stack.Screen name="WaterTracking" component={WaterTrackingScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="RecipeGenerator" component={RecipeGeneratorScreen} />
+          <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
