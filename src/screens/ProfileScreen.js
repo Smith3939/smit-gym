@@ -128,15 +128,21 @@ export default function ProfileScreen({ navigation }) {
   const saveProfile = async () => {
     try {
       await updateProfile(profile);
-      // Sync the public part so the community can see it
-      await upsertPublicProfile(user.uid, {
-        name: profile.name,
-        photo: profile.photo || null,
-        bio: profile.bio || '',
-        gymName: profile.gymName || '',
-        city: profile.city || '',
-        goal: profile.goal,
-      });
+      // Sync the public part so the community can see it.
+      // Non-fatal: if the community rules aren't deployed yet, the private
+      // profile still saves.
+      try {
+        await upsertPublicProfile(user.uid, {
+          name: profile.name,
+          photo: profile.photo || null,
+          bio: profile.bio || '',
+          gymName: profile.gymName || '',
+          city: profile.city || '',
+          goal: profile.goal,
+        });
+      } catch (publicErr) {
+        console.log('Public profile sync failed (rules not deployed?):', publicErr);
+      }
       toast.success('הפרטים נשמרו בהצלחה! ✅');
     } catch (e) {
       console.log('Profile save failed:', e);

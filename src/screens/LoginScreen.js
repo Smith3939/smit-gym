@@ -252,6 +252,8 @@ export default function LoginScreen({ navigation, route }) {
                   autoCapitalize="none"
                   autoCorrect={false}
                   textAlign="right"
+                  returnKeyType="go"
+                  onSubmitEditing={handleLogin}
                 />
                 <MaterialIcons name="lock" size={22} color={COLORS.primary} />
               </View>
