@@ -8,6 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/context/AuthContext';
 import { ToastProvider } from './src/components/Toast';
 import AndroidDownloadPrompt from './src/components/AndroidDownloadPrompt';
+import UpdateChecker from './src/components/UpdateChecker';
 import { COLORS } from './src/config/theme';
 
 const SCROLL_EDGE_PROPS = {
@@ -122,6 +123,7 @@ export default function App() {
               <AppNavigator />
             </NavigationContainer>
             <AndroidDownloadPrompt />
+            <UpdateChecker />
           </ToastProvider>
         </AuthProvider>
       </SafeAreaProvider>
