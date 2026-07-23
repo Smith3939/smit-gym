@@ -1,10 +1,11 @@
 /**
- * Writes dist/version.json after every web build.
- * Runs as part of `npm run build`, so every Vercel deployment gets a fresh
- * build id. The app polls this file to detect new deployments and prompt
- * already-open clients to refresh.
+ * Post-build steps for the web export (runs after `expo export`):
+ *  1. Writes dist/version.json so open clients can detect new deployments.
+ *  2. Injects PWA head tags (manifest, apple-touch-icon, theme-color) into
+ *     dist/index.html so "add to home screen" installs get the real Smit Gym
+ *     icon and standalone behavior.
  */
-import { writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, copyFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,3 +37,35 @@ const version = {
 
 writeFileSync(join(distDir, 'version.json'), JSON.stringify(version));
 console.log('write-version: dist/version.json =', JSON.stringify(version));
+
+// ── Ensure PWA assets are present in dist (Expo copies public/, but copy
+//    defensively in case that changes) ──────────────────────────────────────
+const publicDir = join(root, 'public');
+for (const f of ['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png']) {
+  const src = join(publicDir, f);
+  const dest = join(distDir, f);
+  if (existsSync(src) && !existsSync(dest)) {
+    try { copyFileSync(src, dest); } catch {}
+  }
+}
+
+// ── Inject PWA head tags into dist/index.html ────────────────────────────────
+const indexPath = join(distDir, 'index.html');
+if (existsSync(indexPath)) {
+  let html = readFileSync(indexPath, 'utf8');
+  const headTags = [
+    '<link rel="manifest" href="/manifest.json" />',
+    '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+    '<meta name="theme-color" content="#0A0E1A" />',
+    '<meta name="apple-mobile-web-app-capable" content="yes" />',
+    '<meta name="mobile-web-app-capable" content="yes" />',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+    '<meta name="apple-mobile-web-app-title" content="Smit Gym" />',
+  ].join('\n    ');
+
+  if (!html.includes('rel="manifest"')) {
+    html = html.replace('</head>', `    ${headTags}\n  </head>`);
+    writeFileSync(indexPath, html);
+    console.log('write-version: injected PWA head tags into index.html');
+  }
+}
