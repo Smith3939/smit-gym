@@ -128,11 +128,11 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 
 ## 8. מערכת ה-AI
 
-- **מפתח:** נקרא מ-`process.env.EXPO_PUBLIC_CLAUDE_API_KEY` (או היסטורית מ-`src/config/apiKeys.js` שמוגן ב-gitignore). **לעולם לא נשמר ב-GitHub.**
+- **מפתח:** נשמר כ-Firebase Secret בשם `ANTHROPIC_API_KEY` ונגיש רק לפונקציית Cloud Function המאומתת (`functions/index.js`). הוא לעולם לא נכנס ל-GitHub או ל-Web bundle.
 - **מודל:** `claude-sonnet-4-20250514`, timeout 20 שניות.
 - **3 שימושים:** צ'אט (`aiService`), החלפת מזון (`aiNutritionService`), החלפת/גיוון תרגילים (`aiWorkoutService`) — כולם עוברים דרך `claudeClient.js`.
 - **Fallback:** אם אין מפתח תקין (`sk-ant-...`) או שהקריאה נכשלת — המערכת נופלת אוטומטית למאגר המקומי. הצ'אט מציג תווית **"בסיסי"** במקום **"חי"** כדי לא להטעות.
-- **אבטחה עתידית:** לפרודקשן אמיתי, המפתח צריך לשבת ב-backend (Cloud Function) ולא באפליקציה.
+- **אבטחה:** הלקוח קורא ל-Firebase Callable Function בשם `claude`. Firebase מאמת אוטומטית את המשתמש לפני הקריאה; ה-Cloud Function פונה ל-Claude עם המפתח הסודי.
 
 ---
 
@@ -166,7 +166,7 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 **חוסמים / דרוש פעולת בעלים:**
 1. **לפרוס `firestore.rules`** ב-Firebase Console (Firestore → Rules → Publish) — אחרת הקהילה והפרופיל הציבורי חסומים.
 2. **לחבר Vercel ל-GitHub** (repo `Smith3939/smit-gym`, branch `master`) לפריסה אוטומטית — כרגע האתר לא מתעדכן אוטומטית.
-3. **מפתח Claude** — להגדיר `EXPO_PUBLIC_CLAUDE_API_KEY` ב-Environment Variables ב-Vercel כדי שה-AI יעבוד באתר החי.
+3. **פריסת AI מאובטחת** — לפרוס את Cloud Function, להגדיר `ANTHROPIC_API_KEY` כ-Firebase Secret, ואז להגדיר ב-Vercel את `EXPO_PUBLIC_AI_BACKEND_ENABLED=true` כדי להפעיל את תגית ה-AI החי.
 4. **לאפ סטור:** `eas build` + חשבון Apple Developer + Google Play + מדיניות פרטיות + הצהרת בריאות.
 
 ---
@@ -180,4 +180,4 @@ npm run build      # בונה גרסת web ל-dist/
 ```
 
 - Repo: `https://github.com/Smith3939/smit-gym`
-- מפתח Claude מקומי: להעתיק `src/config/apiKeys.example.js` ל-`apiKeys.js` ולהדביק מפתח (הקובץ gitignored).
+- הגדרת AI: לאחר התחברות ל-Firebase CLI, להריץ `firebase functions:secrets:set ANTHROPIC_API_KEY`, ואז `firebase deploy --only functions`. אין להגדיר מפתח Claude בלקוח או ב-Vercel.

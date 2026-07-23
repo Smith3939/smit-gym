@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 const defaultAuthDomain = 'smith-gymai.firebaseapp.com';
 
@@ -38,5 +39,6 @@ if (Platform.OS === 'web') {
 
 export const auth = authInstance;
 export const db = getFirestore(app);
+export const functions = getFunctions(app, 'europe-west1');
 
 export default app;
