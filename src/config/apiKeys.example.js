@@ -8,7 +8,7 @@
  *
  * ⚠️ SECURITY WARNING:
  * Never put an Anthropic / Claude API key in this file.
- * The AI coach uses the Firebase Cloud Function in functions/index.js instead.
+ * The AI coach uses the secure Vercel API route in api/claude.js instead.
  */
 
 // Google OAuth Web Client ID (from Firebase Console > Auth > Google > Web SDK)

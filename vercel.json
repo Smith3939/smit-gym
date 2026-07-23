@@ -7,7 +7,7 @@
       "destination": "https://smith-gymai.firebaseapp.com/__/auth/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path((?!api/).*)",
       "destination": "/index.html"
     }
   ],

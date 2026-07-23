@@ -12,7 +12,7 @@
 - **קהל יעד:** מתאמנים עצמאיים (לא מאמנים). ניהול מאמנים אולי בעתיד.
 - **מודל עסקי:** גרסה חינמית ראשונה, מנוי חודשי בהמשך.
 - **שפה/עיצוב:** עברית RTL מלאה, מצב כהה (dark), ערכת צבעים "Aurora" (ורוד/סגול/תכלת).
-- **פלטפורמות:** נבנה ב-React Native + Expo — רץ ב-Web (הפריסה החיה), ומוכן לבנייה כאפליקציית iOS/Android נייטיב דרך EAS. כרגע חי כ-Web App עטוף (PWA/TWA) בכתובת `https://smithgym.vercel.app`.
+- **פלטפורמות:** נבנה ב-React Native + Expo — רץ ב-Web (הפריסה החיה), ומוכן לבנייה כאפליקציית iOS/Android נייטיב דרך EAS. כרגע חי כ-Web App עטוף (PWA/TWA) בכתובת `https://smit-gym.vercel.app`.
 
 ---
 
@@ -128,11 +128,11 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 
 ## 8. מערכת ה-AI
 
-- **מפתח:** נשמר כ-Firebase Secret בשם `ANTHROPIC_API_KEY` ונגיש רק לפונקציית Cloud Function המאומתת (`functions/index.js`). הוא לעולם לא נכנס ל-GitHub או ל-Web bundle.
-- **מודל:** `claude-sonnet-4-20250514`, timeout 20 שניות.
+- **מפתח:** נשמר כמשתנה סודי ב-Vercel בשם `ANTHROPIC_API_KEY`, ונגיש רק לנתיב השרת `api/claude.js`. הוא לעולם לא נכנס ל-GitHub או ל-Web bundle.
+- **מודל:** `claude-sonnet-4-6` (ניתן לשינוי דרך `ANTHROPIC_MODEL`), timeout 25 שניות.
 - **3 שימושים:** צ'אט (`aiService`), החלפת מזון (`aiNutritionService`), החלפת/גיוון תרגילים (`aiWorkoutService`) — כולם עוברים דרך `claudeClient.js`.
 - **Fallback:** אם אין מפתח תקין (`sk-ant-...`) או שהקריאה נכשלת — המערכת נופלת אוטומטית למאגר המקומי. הצ'אט מציג תווית **"בסיסי"** במקום **"חי"** כדי לא להטעות.
-- **אבטחה:** הלקוח קורא ל-Firebase Callable Function בשם `claude`. Firebase מאמת אוטומטית את המשתמש לפני הקריאה; ה-Cloud Function פונה ל-Claude עם המפתח הסודי.
+- **אבטחה:** הלקוח שולח Firebase ID token ל-`/api/claude`. נתיב ה-Vercel מאמת את החתימה מול Firebase, מתיר שימוש רק למיילים שב-`AI_ALLOWED_EMAILS`, מגביל בקשות בסיסית, ופונה ל-Claude עם המפתח הסודי. Firebase Blaze אינו נדרש.
 
 ---
 
@@ -152,7 +152,7 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 
 ## 10. פריסה ומנגנון עדכונים (Deployment & Updates)
 
-- **פריסת Web:** Vercel בונה עם `npm run build` (= `expo export --platform web` + `scripts/write-version.mjs`) ומגיש את `dist/`. כתובת חיה: `https://smithgym.vercel.app`.
+- **פריסת Web:** Vercel בונה עם `npm run build` (= `expo export --platform web` + `scripts/write-version.mjs`) ומגיש את `dist/`. כתובת חיה: `https://smit-gym.vercel.app`. הפרויקט מחובר למאגר GitHub `Smith3939/smit-gym`; פריסת Production אוטומטית מתבצעת מדחיפות ל-`master`.
 - **מנגנון עדכון אוטומטי:** כל בנייה כותבת `dist/version.json` (עם `builtAt`). הרכיב `UpdateChecker` בודק את הקובץ כל 4 דקות ובכל חזרה לאפליקציה; אם יצאה גרסה חדשה — מציג באנר **"גרסה חדשה זמינה - לחץ לעדכון"** שמרענן.
 - **Cache headers (`vercel.json`):** ה-HTML ו-`version.json` תמיד no-store; קבצי `_expo/static` (עם hash בשם) נשמרים במטמון לשנה.
 - **חשוב:** אפליקציה שהותקנה כ-TWA מ-Google Play שומרת את האייקון הישן עד לבניית APK חדש; התקנות PWA ("הוסף למסך הבית") מקבלות את האייקון החדש בטעינה הבאה.
@@ -165,9 +165,8 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 
 **חוסמים / דרוש פעולת בעלים:**
 1. **לפרוס `firestore.rules`** ב-Firebase Console (Firestore → Rules → Publish) — אחרת הקהילה והפרופיל הציבורי חסומים.
-2. **לחבר Vercel ל-GitHub** (repo `Smith3939/smit-gym`, branch `master`) לפריסה אוטומטית — כרגע האתר לא מתעדכן אוטומטית.
-3. **פריסת AI מאובטחת** — לפרוס את Cloud Function, להגדיר `ANTHROPIC_API_KEY` כ-Firebase Secret, ואז להגדיר ב-Vercel את `EXPO_PUBLIC_AI_BACKEND_ENABLED=true` כדי להפעיל את תגית ה-AI החי.
-4. **לאפ סטור:** `eas build` + חשבון Apple Developer + Google Play + מדיניות פרטיות + הצהרת בריאות.
+2. **הפעלת AI חי** — להגדיר ב-Vercel את `ANTHROPIC_API_KEY`, `AI_ALLOWED_EMAILS` ו-`EXPO_PUBLIC_AI_BACKEND_ENABLED=true`, ואז לבצע פריסה חדשה. הוראות מלאות ב-`VERCEL_SETUP.md`.
+3. **לאפ סטור:** `eas build` + חשבון Apple Developer + Google Play + מדיניות פרטיות + הצהרת בריאות.
 
 ---
 
@@ -180,4 +179,4 @@ npm run build      # בונה גרסת web ל-dist/
 ```
 
 - Repo: `https://github.com/Smith3939/smit-gym`
-- הגדרת AI: לאחר התחברות ל-Firebase CLI, להריץ `firebase functions:secrets:set ANTHROPIC_API_KEY`, ואז `firebase deploy --only functions`. אין להגדיר מפתח Claude בלקוח או ב-Vercel.
+- הגדרת AI: להגדיר ב-Vercel את `ANTHROPIC_API_KEY` ואת `AI_ALLOWED_EMAILS` לפי `VERCEL_SETUP.md`, ואז לפרוס. אין להגדיר מפתח Claude בלקוח או ב-GitHub.
