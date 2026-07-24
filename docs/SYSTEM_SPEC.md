@@ -155,7 +155,7 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 - **פריסת Web:** Vercel בונה עם `npm run build` (= `expo export --platform web` + `scripts/write-version.mjs`) ומגיש את `dist/`. כתובת חיה: `https://smit-gym.vercel.app`. הפרויקט מחובר למאגר GitHub `Smith3939/smit-gym`; פריסת Production אוטומטית מתבצעת מדחיפות ל-`master`.
 - **מנגנון עדכון אוטומטי:** כל בנייה כותבת `dist/version.json` (עם `builtAt`). הרכיב `UpdateChecker` בודק את הקובץ כל 4 דקות ובכל חזרה לאפליקציה; אם יצאה גרסה חדשה — מציג באנר **"גרסה חדשה זמינה - לחץ לעדכון"** שמרענן.
 - **Cache headers (`vercel.json`):** ה-HTML ו-`version.json` תמיד no-store; קבצי `_expo/static` (עם hash בשם) נשמרים במטמון לשנה.
-- **חשוב:** אפליקציה שהותקנה כ-TWA מ-Google Play שומרת את האייקון הישן עד לבניית APK חדש; התקנות PWA ("הוסף למסך הבית") מקבלות את האייקון החדש בטעינה הבאה.
+- **עדכון לוגו:** בכל פריסת Web כתובות אייקוני ה-PWA מקבלות מזהה גרסה חדש. Chrome/Android יעדכן את סמל ה-PWA לאחר שהאפליקציה נפתחת ומעדכנת את ה-manifest. אפליקציה נייטיבית או TWA שכבר הותקנה דרך Google Play כוללת את הסמל בתוך ה-APK ולכן דורשת גרסת APK חדשה; ב-iPhone ייתכן שתידרש הסרה והתקנה מחדש של קיצור הדרך.
 
 ---
 

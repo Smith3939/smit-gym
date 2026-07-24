@@ -34,6 +34,7 @@ const version = {
   commit,
   builtAt: Date.now(),
 };
+const iconVersion = encodeURIComponent(commit || String(version.builtAt));
 
 writeFileSync(join(distDir, 'version.json'), JSON.stringify(version));
 console.log('write-version: dist/version.json =', JSON.stringify(version));
@@ -41,6 +42,13 @@ console.log('write-version: dist/version.json =', JSON.stringify(version));
 // ── Ensure PWA assets are present in dist (Expo copies public/, but copy
 //    defensively in case that changes) ──────────────────────────────────────
 const publicDir = join(root, 'public');
+const manifestTemplatePath = join(publicDir, 'manifest.json');
+if (existsSync(manifestTemplatePath)) {
+  const manifest = readFileSync(manifestTemplatePath, 'utf8').replaceAll('__ICON_VERSION__', iconVersion);
+  writeFileSync(join(distDir, 'manifest.json'), manifest);
+  console.log(`write-version: versioned PWA icon URLs with ${iconVersion}`);
+}
+
 for (const f of ['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png']) {
   const src = join(publicDir, f);
   const dest = join(distDir, f);
@@ -54,8 +62,8 @@ const indexPath = join(distDir, 'index.html');
 if (existsSync(indexPath)) {
   let html = readFileSync(indexPath, 'utf8');
   const headTags = [
-    '<link rel="manifest" href="/manifest.json" />',
-    '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+    `<link rel="manifest" href="/manifest.json?v=${iconVersion}" />`,
+    `<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=${iconVersion}" />`,
     '<meta name="theme-color" content="#0A0E1A" />',
     '<meta name="apple-mobile-web-app-capable" content="yes" />',
     '<meta name="mobile-web-app-capable" content="yes" />',
