@@ -195,7 +195,7 @@ export default function LoginScreen({ navigation, route }) {
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
               >
-                <MaterialIcons name="fitness-center" size={52} color={COLORS.text} />
+                <MaterialIcons name="fitness-center" size={52} color={COLORS.textOnColor} />
               </LinearGradient>
             </Animated.View>
           </View>
@@ -277,10 +277,10 @@ export default function LoginScreen({ navigation, route }) {
                 style={[styles.loginButton, loading && styles.buttonDisabled]}
               >
                 {loading ? (
-                  <ActivityIndicator color={COLORS.text} />
+                  <ActivityIndicator color={COLORS.textOnColor} />
                 ) : (
                   <>
-                    <MaterialIcons name={RTL_ICONS.forward} size={20} color={COLORS.text} />
+                    <MaterialIcons name={RTL_ICONS.forward} size={20} color={COLORS.textOnColor} />
                     <Text style={styles.loginButtonText}>התחבר</Text>
                   </>
                 )}
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   loginButtonText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
   },

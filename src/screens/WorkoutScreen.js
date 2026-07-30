@@ -586,10 +586,10 @@ export default function WorkoutScreen() {
             style={styles.finishButton}
           >
             {saving ? (
-              <ActivityIndicator color={COLORS.text} />
+              <ActivityIndicator color={COLORS.textOnColor} />
             ) : (
               <>
-                <MaterialIcons name="check-circle" size={24} color={COLORS.text} />
+                <MaterialIcons name="check-circle" size={24} color={COLORS.textOnColor} />
                 <Text style={styles.finishButtonText}>סיים ושמור אימון</Text>
               </>
             )}
@@ -962,7 +962,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   finishButtonText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
   },

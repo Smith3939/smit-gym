@@ -64,10 +64,10 @@ if (existsSync(indexPath)) {
   const headTags = [
     `<link rel="manifest" href="/manifest.json?v=${iconVersion}" />`,
     `<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=${iconVersion}" />`,
-    '<meta name="theme-color" content="#0A0E1A" />',
+    '<meta name="theme-color" content="#F2F2F7" />',
     '<meta name="apple-mobile-web-app-capable" content="yes" />',
     '<meta name="mobile-web-app-capable" content="yes" />',
-    '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />',
+    '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
     '<meta name="apple-mobile-web-app-title" content="Smit Gym" />',
   ].join('\n    ');
 

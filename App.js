@@ -1,6 +1,6 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { FlatList, Platform, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -86,10 +86,10 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 const appTheme = {
-  ...DarkTheme,
-  dark: true,
+  ...DefaultTheme,
+  dark: false,
   colors: {
-    ...DarkTheme.colors,
+    ...DefaultTheme.colors,
     primary: COLORS.primary,
     background: COLORS.background,
     card: COLORS.surface,
@@ -119,7 +119,7 @@ export default function App() {
         <AuthProvider>
           <ToastProvider>
             <NavigationContainer theme={appTheme} linking={linking}>
-              <StatusBar style="light" backgroundColor={COLORS.background} />
+              <StatusBar style="dark" backgroundColor={COLORS.background} />
               <AppNavigator />
             </NavigationContainer>
             <AndroidDownloadPrompt />

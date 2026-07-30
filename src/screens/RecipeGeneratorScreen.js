@@ -59,7 +59,7 @@ function RecipeCard({ recipe, onPress, delay }) {
       <View style={styles.recipeCardContent}>
         <View style={styles.recipeCardHeader}>
           <View style={[styles.recipeCategoryDot, { backgroundColor: category.color }]}>
-            <MaterialIcons name={category.icon} size={16} color={COLORS.text} />
+            <MaterialIcons name={category.icon} size={16} color={COLORS.textOnColor} />
           </View>
           <View style={styles.recipeTags}>
             <View style={styles.recipeTag}>
@@ -131,7 +131,7 @@ function RecipeDetail({ recipe, calorieBudget, onClose }) {
   return (
     <Animated.View style={[styles.detailContainer, { opacity: fadeAnim }]}>
       <LinearGradient
-        colors={['#0F0F14', '#1A1A23', '#0F0F14']}
+        colors={[COLORS.background, COLORS.backgroundLight, COLORS.background]}
         style={StyleSheet.absoluteFillObject}
       />
 

@@ -80,7 +80,7 @@ export default function AIChatScreen() {
           colors={[COLORS.tertiary, COLORS.secondary]}
           style={styles.headerIconBg}
         >
-          <MaterialIcons name="auto-awesome" size={22} color={COLORS.text} />
+          <MaterialIcons name="auto-awesome" size={22} color={COLORS.textOnColor} />
         </LinearGradient>
         <Text style={styles.title}>המאמן AI שלך</Text>
         {AI_LIVE ? (

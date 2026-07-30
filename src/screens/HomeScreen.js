@@ -1,348 +1,296 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
+  COLORS, DOMAIN, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
 } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
 import { isAIConnected } from '../services/aiService';
-import GlassCard from '../components/GlassCard';
-import ProgressRing from '../components/ProgressRing';
 import AuroraBackground from '../components/AuroraBackground';
-import AnimatedAthlete from '../components/AnimatedAthlete';
+import ActivityRings, { RingLegend } from '../components/ActivityRings';
+import StatTile, { SectionTitle } from '../components/StatTile';
+import Avatar from '../components/Avatar';
 import { FadeInView } from '../components/AnimatedCard';
 import { RTL_ICONS } from '../utils/rtl';
 
-const MOTIVATIONAL_QUOTES = [
+const { width } = Dimensions.get('window');
+
+const QUOTES = [
   'הצלחה היא סכום של מאמצים קטנים שחוזרים על עצמם',
-  'המאמן הכי טוב שלך - זה אתה',
-  'גוף בריא, נפש בריאה',
+  'המאמן הכי טוב שלך — זה אתה',
   'כל אימון הוא ניצחון',
   'התקדמות, לא שלמות',
 ];
 
-function StatPill({ icon, value, unit, label, color, gradient, progress }) {
+/** Colour-coded quick-access tile (Nike-style grid). */
+function QuickTile({ title, subtitle, icon, color, soft, onPress, width: w }) {
   return (
-    <GlassCard
-      style={styles.statPill}
-      gradientColors={gradient}
-      borderColor={color + '30'}
-    >
-      <View style={styles.statPillTop}>
-        <View style={[styles.statIconCircle, { backgroundColor: color + '20' }]}>
-          <MaterialIcons name={icon} size={18} color={color} />
-        </View>
-        {progress !== undefined && (
-          <Text style={[styles.statPercent, { color }]}>{Math.round(progress * 100)}%</Text>
-        )}
-      </View>
-
-      <View style={styles.statPillBottom}>
-        <View style={styles.statValueRow}>
-          <Text style={styles.statValue}>{value}</Text>
-          {unit && <Text style={styles.statUnit}>{unit}</Text>}
-        </View>
-        <Text style={styles.statLabel}>{label}</Text>
-      </View>
-
-      {progress !== undefined && (
-        <View style={styles.statProgressTrack}>
-          <View
-            style={[
-              styles.statProgressBar,
-              { width: `${Math.min(progress * 100, 100)}%`, backgroundColor: color },
-            ]}
-          />
-        </View>
-      )}
-    </GlassCard>
-  );
-}
-
-function ActionCard({ title, subtitle, icon, gradient, color, onPress, delay }) {
-  return (
-    <GlassCard
+    <TouchableOpacity
       onPress={onPress}
-      gradientColors={gradient}
-      borderColor={color + '30'}
-      delay={delay}
-      style={styles.actionCard}
+      activeOpacity={0.88}
+      style={[styles.quickTile, { width: w }]}
     >
-      <View style={styles.actionCardInner}>
-        <View style={[styles.actionIconBg, { backgroundColor: color + '20' }]}>
-          <MaterialIcons name={icon} size={26} color={color} />
-        </View>
-        <Text style={styles.actionTitle}>{title}</Text>
-        <Text style={styles.actionSubtitle}>{subtitle}</Text>
-        <View style={styles.actionArrow}>
-          <MaterialIcons name={RTL_ICONS.forward} size={16} color={color} />
-        </View>
+      <View style={[styles.quickIcon, { backgroundColor: soft }]}>
+        <MaterialIcons name={icon} size={22} color={color} />
       </View>
-    </GlassCard>
+      <Text style={styles.quickTitle}>{title}</Text>
+      <Text style={styles.quickSubtitle} numberOfLines={1}>{subtitle}</Text>
+    </TouchableOpacity>
   );
 }
 
 export default function HomeScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { user, userProfile } = useAuth();
+
   const displayName = userProfile?.name || user?.displayName || 'מתאמן';
   const firstName = displayName.split(' ')[0];
+  const [quote] = useState(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
 
-  const [quote] = useState(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)]);
-  const greetingHour = new Date().getHours();
-  const greeting = greetingHour < 12 ? 'בוקר טוב' : greetingHour < 18 ? 'צהריים טובים' : 'ערב טוב';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'בוקר טוב' : hour < 18 ? 'צהריים טובים' : 'ערב טוב';
 
-  // Calculated stats
+  // ── Metrics ───────────────────────────────────────────────────────────────
   const weight = parseFloat(userProfile?.weight) || 0;
   const targetCal = userProfile?.dailyCalories || 2000;
   const consumedCal = 0;
   const workoutsThisWeek = 3;
+  const workoutGoal = 5;
   const stepsToday = 0;
+  const stepGoal = userProfile?.stepGoal || 10000;
   const waterToday = 0;
   const waterGoal = (userProfile?.waterGoal || 3.5) * 1000;
 
-  const actions = [
+  const rings = [
+    {
+      key: 'workout',
+      progress: workoutsThisWeek / workoutGoal,
+      colors: DOMAIN.workout.ring,
+      label: 'אימונים השבוע',
+      value: `${workoutsThisWeek} / ${workoutGoal}`,
+    },
+    {
+      key: 'nutrition',
+      progress: consumedCal / targetCal,
+      colors: DOMAIN.nutrition.ring,
+      label: 'קלוריות היום',
+      value: `${consumedCal} / ${targetCal}`,
+    },
+    {
+      key: 'water',
+      progress: waterToday / waterGoal,
+      colors: DOMAIN.water.ring,
+      label: 'מים',
+      value: `${(waterToday / 1000).toFixed(1)} / ${(waterGoal / 1000).toFixed(1)} ל׳`,
+    },
+  ];
+
+  const quickTileWidth = (width - SPACING.md * 2 - SPACING.sm * 2) / 3;
+
+  const quickActions = [
+    {
+      title: 'אימון',
+      subtitle: 'התוכנית שלי',
+      icon: 'fitness-center',
+      screen: 'WorkoutTab',
+      ...DOMAIN.workout,
+    },
     {
       title: 'תזונה',
       subtitle: 'תפריט יומי',
       icon: 'restaurant',
       screen: 'NutritionTab',
-      gradient: GRADIENTS.cardGreen,
-      color: COLORS.success,
+      ...DOMAIN.nutrition,
     },
     {
-      title: 'אימונים',
-      subtitle: 'A · B · אירובי',
-      icon: 'fitness-center',
-      screen: 'WorkoutTab',
-      gradient: GRADIENTS.cardPink,
-      color: COLORS.primary,
+      title: 'מים',
+      subtitle: 'מעקב שתייה',
+      icon: 'water-drop',
+      screen: 'WaterTracking',
+      ...DOMAIN.water,
     },
     {
       title: 'מתכונים',
       subtitle: 'לפי קלוריות',
       icon: 'menu-book',
       screen: 'RecipeGenerator',
-      gradient: GRADIENTS.cardAmber,
-      color: COLORS.warning,
+      ...DOMAIN.energy,
     },
     {
-      title: 'מים',
-      subtitle: 'מעקב יומי',
-      icon: 'water-drop',
-      screen: 'WaterTracking',
-      gradient: GRADIENTS.cardCyan,
-      color: COLORS.secondary,
+      title: 'תרגילים',
+      subtitle: 'ספרייה',
+      icon: 'list-alt',
+      screen: 'ExerciseLibrary',
+      ...DOMAIN.workout,
+    },
+    {
+      title: 'משקל',
+      subtitle: 'מעקב',
+      icon: 'monitor-weight',
+      screen: 'WeightTracking',
+      ...DOMAIN.community,
     },
   ];
 
   return (
     <View style={styles.root}>
-      <AuroraBackground intensity={0.6} />
+      <AuroraBackground intensity={0.5} />
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          {
-            paddingTop: insets.top + SPACING.md,
-            paddingBottom: insets.bottom + 96,
-          },
-        ]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.md }]}
         showsVerticalScrollIndicator={false}
-        bounces={false}
-        alwaysBounceVertical={false}
-        overScrollMode="never"
       >
-        {/* Top bar */}
-        <FadeInView style={styles.topBar}>
+        {/* ── Header: greeting + avatar ─────────────────────────────────── */}
+        <FadeInView style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.name}>{firstName}</Text>
+          </View>
           <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.85}
           >
-            <MaterialIcons name="settings" size={20} color={COLORS.textSecondary} />
+            <Avatar photo={userProfile?.photo} size={48} borderColor={COLORS.border} />
           </TouchableOpacity>
-
-          <View style={styles.brandPill}>
-            <View style={styles.brandDot} />
-            <Text style={styles.brandText}>SMIT GYM</Text>
-          </View>
-
-          <View style={styles.iconBtn}>
-            <MaterialIcons name="notifications-none" size={20} color={COLORS.textSecondary} />
-            <View style={styles.notifIndicator} />
-          </View>
         </FadeInView>
 
-        {/* Greeting */}
-        <FadeInView delay={100} style={styles.greetingBlock}>
-          <Text style={styles.greetingHello}>{greeting},</Text>
-          <Text style={styles.greetingName}>{firstName}</Text>
-          <Text style={styles.greetingQuote}>{quote}</Text>
-        </FadeInView>
+        {/* ── Hero: activity rings ──────────────────────────────────────── */}
+        <FadeInView delay={80}>
+          <View style={styles.heroCard}>
+            <View style={styles.heroRow}>
+              <ActivityRings rings={rings} size={162} strokeWidth={15} gap={5}>
+                <Text style={styles.ringCenterValue}>
+                  {Math.round((workoutsThisWeek / workoutGoal) * 100)}%
+                </Text>
+                <Text style={styles.ringCenterLabel}>מהיעד</Text>
+              </ActivityRings>
 
-        {/* Hero card with progress + athlete */}
-        <GlassCard
-          delay={200}
-          gradientColors={['rgba(255,77,143,0.2)', 'rgba(167,139,250,0.12)']}
-          borderColor="rgba(255,77,143,0.3)"
-          style={styles.heroCard}
-          glow
-        >
-          <View style={styles.heroCardContent}>
-            <View style={styles.heroLeft}>
-              <View style={styles.heroStreakBadge}>
-                <View style={styles.heroFireDot} />
-                <Text style={styles.heroStreakText}>3 ימי רצף</Text>
-              </View>
-              <Text style={styles.heroHugeNumber}>{workoutsThisWeek}</Text>
-              <Text style={styles.heroLabel}>אימונים השבוע</Text>
-
-              <View style={styles.heroDivider} />
-
-              <View style={styles.heroBottomRow}>
-                <MaterialIcons name="trending-up" size={14} color={COLORS.success} />
-                <Text style={styles.heroPositive}>+15% מהשבוע שעבר</Text>
+              <View style={styles.heroLegend}>
+                <Text style={styles.heroTitle}>הפעילות שלי</Text>
+                <RingLegend rings={rings} />
               </View>
             </View>
 
-            <View style={styles.heroRight}>
-              <View style={styles.athleteWrap}>
-                <AnimatedAthlete size={130} />
-              </View>
-            </View>
+            <Text style={styles.quote}>{quote}</Text>
           </View>
-        </GlassCard>
+        </FadeInView>
 
-        {/* Quick stats row */}
-        <View style={styles.statsRow}>
-          <StatPill
+        {/* ── Today's numbers ───────────────────────────────────────────── */}
+        <SectionTitle>היום</SectionTitle>
+        <View style={styles.tileRow}>
+          <StatTile
             icon="local-fire-department"
             value={consumedCal}
-            unit={`/${targetCal}`}
+            unit={`/ ${targetCal}`}
             label="קלוריות"
-            color={COLORS.primary}
-            gradient={GRADIENTS.cardPink}
+            color={DOMAIN.workout.color}
+            soft={DOMAIN.workout.soft}
             progress={consumedCal / targetCal}
+            onPress={() => navigation.navigate('NutritionTab')}
           />
-          <StatPill
+          <StatTile
             icon="water-drop"
             value={(waterToday / 1000).toFixed(1)}
-            unit="L"
+            unit="ל׳"
             label="מים"
-            color={COLORS.secondary}
-            gradient={GRADIENTS.cardCyan}
+            color={DOMAIN.water.color}
+            soft={DOMAIN.water.soft}
             progress={waterToday / waterGoal}
+            onPress={() => navigation.navigate('WaterTracking')}
           />
         </View>
-
-        <View style={styles.statsRow}>
-          <StatPill
+        <View style={styles.tileRow}>
+          <StatTile
             icon="directions-walk"
-            value={stepsToday}
+            value={stepsToday.toLocaleString()}
             unit="צעדים"
-            label={`יעד: ${(userProfile?.stepGoal || 12000).toLocaleString()}`}
-            color={COLORS.accent}
-            gradient={GRADIENTS.cardLime}
-            progress={stepsToday / (userProfile?.stepGoal || 12000)}
+            label={`יעד ${stepGoal.toLocaleString()}`}
+            color={DOMAIN.energy.color}
+            soft={DOMAIN.energy.soft}
+            progress={stepsToday / stepGoal}
           />
-          <StatPill
+          <StatTile
             icon="monitor-weight"
-            value={weight || '--'}
-            unit={weight ? 'kg' : ''}
+            value={weight || '—'}
+            unit={weight ? 'ק״ג' : ''}
             label="משקל נוכחי"
-            color={COLORS.tertiary}
-            gradient={GRADIENTS.cardPurple}
+            color={DOMAIN.community.color}
+            soft={DOMAIN.community.soft}
+            onPress={() => navigation.navigate('WeightTracking')}
           />
         </View>
 
-        {/* Quick actions grid */}
-        <View style={styles.sectionHeader}>
-          <View style={styles.sectionLine} />
-          <Text style={styles.sectionTitle}>מה תרצה לעשות?</Text>
-        </View>
+        {/* ── AI coach ──────────────────────────────────────────────────── */}
+        <SectionTitle>המאמן שלך</SectionTitle>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('AIChat')}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={GRADIENTS.primaryHero}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.aiCard}
+          >
+            <View style={styles.aiIcon}>
+              <MaterialIcons name="auto-awesome" size={26} color={COLORS.textOnColor} />
+            </View>
+            <View style={styles.aiText}>
+              <View style={styles.aiTitleRow}>
+                <Text style={styles.aiTitle}>מאמן AI</Text>
+                {isAIConnected() && (
+                  <View style={styles.liveDot}>
+                    <Text style={styles.liveText}>חי</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.aiSubtitle}>
+                שאל כל שאלה על אימונים, תזונה ומוטיבציה
+              </Text>
+            </View>
+            <MaterialIcons name={RTL_ICONS.forward} size={24} color={COLORS.textOnColor} />
+          </LinearGradient>
+        </TouchableOpacity>
 
-        <View style={styles.actionsGrid}>
-          {actions.map((action, idx) => (
-            <ActionCard
-              key={idx}
-              title={action.title}
-              subtitle={action.subtitle}
-              icon={action.icon}
-              gradient={action.gradient}
-              color={action.color}
-              onPress={() => navigation.navigate(action.screen)}
-              delay={600 + idx * 80}
+        {/* ── Quick access grid ─────────────────────────────────────────── */}
+        <SectionTitle>גישה מהירה</SectionTitle>
+        <View style={styles.quickGrid}>
+          {quickActions.map((a) => (
+            <QuickTile
+              key={a.screen + a.title}
+              title={a.title}
+              subtitle={a.subtitle}
+              icon={a.icon}
+              color={a.color}
+              soft={a.soft}
+              width={quickTileWidth}
+              onPress={() => navigation.navigate(a.screen)}
             />
           ))}
         </View>
 
-        {/* AI Coach hero CTA */}
-        <GlassCard
-          onPress={() => navigation.navigate('AIChat')}
-          gradientColors={['rgba(167,139,250,0.25)', 'rgba(34,211,238,0.15)']}
-          borderColor="rgba(167,139,250,0.4)"
-          delay={1000}
-          style={styles.aiCard}
-          glow
+        {/* ── Community ─────────────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.communityCard}
+          onPress={() => navigation.navigate('CommunityTab')}
+          activeOpacity={0.9}
         >
-          <View style={styles.aiCardInner}>
-            <LinearGradient
-              colors={[COLORS.tertiary, COLORS.secondary]}
-              style={styles.aiIconCircle}
-            >
-              <MaterialIcons name="auto-awesome" size={28} color={COLORS.text} />
-            </LinearGradient>
-
-            <View style={styles.aiTextBlock}>
-              <View style={styles.aiTitleRow}>
-                <Text style={styles.aiTitle}>המאמן AI</Text>
-                {isAIConnected() && (
-                  <View style={styles.aiTag}>
-                    <View style={styles.aiTagDot} />
-                    <Text style={styles.aiTagText}>חי</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.aiSubtitle}>שאל אותי כל שאלה על תזונה, אימונים, מוטיבציה</Text>
-            </View>
-
-            <View style={styles.aiArrow}>
-              <MaterialIcons name={RTL_ICONS.forward} size={24} color={COLORS.tertiary} />
-            </View>
+          <View style={[styles.quickIcon, { backgroundColor: DOMAIN.community.soft }]}>
+            <MaterialIcons name="groups" size={22} color={DOMAIN.community.color} />
           </View>
-        </GlassCard>
-
-        {/* Bottom utility links */}
-        <View style={styles.utilityRow}>
-          <TouchableOpacity
-            style={styles.utilityCard}
-            onPress={() => navigation.navigate('ExerciseLibrary')}
-            activeOpacity={0.85}
-          >
-            <View style={styles.utilityIcon}>
-              <MaterialIcons name="library-books" size={20} color={COLORS.textSecondary} />
-            </View>
-            <Text style={styles.utilityText}>תרגילים</Text>
-            <MaterialIcons name={RTL_ICONS.chevronForward} size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.utilityCard}
-            onPress={() => navigation.navigate('WeightTracking')}
-            activeOpacity={0.85}
-          >
-            <View style={styles.utilityIcon}>
-              <MaterialIcons name="show-chart" size={20} color={COLORS.textSecondary} />
-            </View>
-            <Text style={styles.utilityText}>משקל</Text>
-            <MaterialIcons name={RTL_ICONS.chevronForward} size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        </View>
+          <View style={styles.communityText}>
+            <Text style={styles.communityTitle}>הקהילה</Text>
+            <Text style={styles.communitySubtitle}>
+              מי מתאמן לידך? שתף אימון ומצא שותפים
+            </Text>
+          </View>
+          <MaterialIcons name={RTL_ICONS.forward} size={22} color={COLORS.textMuted} />
+        </TouchableOpacity>
 
         <View style={{ height: SPACING.xl }} />
       </ScrollView>
@@ -351,393 +299,183 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: SPACING.md,
-  },
+  root: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1 },
+  content: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xl },
 
-  // Top bar
-  topBar: {
-    flexDirection: 'row',
+  // Header
+  header: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  notifIndicator: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: COLORS.primary,
-    borderWidth: 2,
-    borderColor: COLORS.background,
-  },
-  brandPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    gap: 6,
-  },
-  brandDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.primary,
-  },
-  brandText: {
-    color: COLORS.text,
-    fontSize: FONTS.tiny,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-  },
-
-  // Greeting
-  greetingBlock: {
     marginBottom: SPACING.lg,
   },
-  greetingHello: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.medium,
-    textAlign: 'right',
-    fontWeight: '500',
-  },
-  greetingName: {
-    color: COLORS.text,
-    fontSize: FONTS.hero,
-    fontWeight: '900',
-    textAlign: 'right',
-    marginTop: -4,
-    lineHeight: 50,
-  },
-  greetingQuote: {
+  headerText: { alignItems: 'flex-end' },
+  greeting: {
     color: COLORS.textMuted,
     fontSize: FONTS.small,
-    textAlign: 'right',
-    marginTop: SPACING.sm,
-    fontStyle: 'italic',
+    fontWeight: '600',
   },
-
-  // Hero card
-  heroCard: {
-    marginBottom: SPACING.md,
-    padding: SPACING.lg,
-  },
-  heroCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  heroLeft: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  heroRight: {
-    width: 130,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  athleteWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroStreakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(251,191,36,0.15)',
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    borderRadius: 999,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.3)',
-  },
-  heroFireDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.warning,
-  },
-  heroStreakText: {
-    color: COLORS.warning,
-    fontSize: FONTS.micro,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  heroHugeNumber: {
+  name: {
     color: COLORS.text,
-    fontSize: 64,
+    fontSize: FONTS.title,
     fontWeight: '900',
-    lineHeight: 70,
-    marginTop: SPACING.sm,
-  },
-  heroLabel: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.small,
-    fontWeight: '500',
-  },
-  heroDivider: {
-    width: 40,
-    height: 2,
-    backgroundColor: COLORS.primary,
-    borderRadius: 1,
-    marginVertical: SPACING.sm,
-  },
-  heroBottomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  heroPositive: {
-    color: COLORS.success,
-    fontSize: FONTS.tiny,
-    fontWeight: '700',
+    letterSpacing: -0.8,
+    marginTop: -2,
   },
 
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    gap: SPACING.md,
+  // Hero rings card
+  heroCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.xxl,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.medium,
+  },
+  heroRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: SPACING.lg,
+  },
+  heroLegend: { flex: 1, alignItems: 'flex-end' },
+  heroTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.medium,
+    fontWeight: '800',
     marginBottom: SPACING.md,
   },
-  statPill: {
-    flex: 1,
-    padding: SPACING.md,
-    minHeight: 120,
-    justifyContent: 'space-between',
-  },
-  statPillTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statPercent: {
-    fontSize: FONTS.tiny,
-    fontWeight: '800',
-  },
-  statPillBottom: {
-    alignItems: 'flex-end',
-    marginTop: SPACING.sm,
-  },
-  statValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  statValue: {
+  ringCenterValue: {
     color: COLORS.text,
     fontSize: FONTS.large,
     fontWeight: '900',
   },
-  statUnit: {
+  ringCenterLabel: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.micro,
+    fontWeight: '600',
+  },
+  quote: {
     color: COLORS.textMuted,
     fontSize: FONTS.tiny,
-    fontWeight: '600',
-  },
-  statLabel: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.tiny,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  statProgressTrack: {
-    height: 3,
-    backgroundColor: COLORS.surfaceLight,
-    borderRadius: 1.5,
-    marginTop: SPACING.sm,
-    overflow: 'hidden',
-  },
-  statProgressBar: {
-    height: '100%',
-    borderRadius: 1.5,
+    textAlign: 'center',
+    marginTop: SPACING.lg,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderLight,
+    fontStyle: 'italic',
   },
 
-  // Section header
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: SPACING.md,
-    marginBottom: SPACING.md,
-    gap: SPACING.sm,
-  },
-  sectionTitle: {
-    color: COLORS.text,
-    fontSize: FONTS.medium,
-    fontWeight: '800',
-  },
-  sectionLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-
-  // Action cards
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  // Stat tiles
+  tileRow: {
+    flexDirection: 'row-reverse',
     gap: SPACING.md,
     marginBottom: SPACING.md,
-  },
-  actionCard: {
-    flexGrow: 1,
-    flexBasis: '47%',
-    minWidth: 140,
-    padding: 0,
-    minHeight: 130,
-  },
-  actionCardInner: {
-    padding: SPACING.md,
-    alignItems: 'flex-end',
-    height: '100%',
-    justifyContent: 'space-between',
-  },
-  actionIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.sm,
-  },
-  actionTitle: {
-    color: COLORS.text,
-    fontSize: FONTS.regular,
-    fontWeight: '800',
-  },
-  actionSubtitle: {
-    color: COLORS.textMuted,
-    fontSize: FONTS.tiny,
-    fontWeight: '500',
-    marginTop: 2,
-  },
-  actionArrow: {
-    position: 'absolute',
-    top: SPACING.md,
-    left: SPACING.md,
-    opacity: 0.6,
   },
 
   // AI card
   aiCard: {
-    marginBottom: SPACING.md,
-    padding: 0,
-  },
-  aiCardInner: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    padding: SPACING.md,
     gap: SPACING.md,
+    padding: SPACING.md,
+    borderRadius: BORDER_RADIUS.xl,
+    ...SHADOWS.glow,
   },
-  aiIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  aiIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  aiTextBlock: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
+  aiText: { flex: 1, alignItems: 'flex-end' },
   aiTitleRow: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: SPACING.sm,
   },
   aiTitle: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.medium,
     fontWeight: '800',
   },
-  aiTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    paddingHorizontal: 6,
+  liveDot: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.3)',
   },
-  aiTagDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.success,
-  },
-  aiTagText: {
-    color: COLORS.success,
-    fontSize: 10,
+  liveText: {
+    color: COLORS.textOnColor,
+    fontSize: FONTS.micro,
     fontWeight: '800',
   },
   aiSubtitle: {
-    color: COLORS.textSecondary,
+    color: 'rgba(255,255,255,0.92)',
     fontSize: FONTS.tiny,
     marginTop: 2,
     textAlign: 'right',
   },
-  aiArrow: {
-    marginStart: SPACING.xs,
-  },
 
-  // Utility row
-  utilityRow: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  utilityCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+  // Quick grid
+  quickGrid: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
     gap: SPACING.sm,
   },
-  utilityIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.surfaceLight,
+  quickTile: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md,
+    alignItems: 'flex-end',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.small,
+  },
+  quickIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: SPACING.sm,
   },
-  utilityText: {
-    flex: 1,
+  quickTitle: {
     color: COLORS.text,
     fontSize: FONTS.small,
-    fontWeight: '600',
+    fontWeight: '800',
+  },
+  quickSubtitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.micro,
+    marginTop: 1,
+  },
+
+  // Community
+  communityCard: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.md,
+    marginTop: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.small,
+  },
+  communityText: { flex: 1, alignItems: 'flex-end' },
+  communityTitle: {
+    color: COLORS.text,
+    fontSize: FONTS.regular,
+    fontWeight: '800',
+  },
+  communitySubtitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+    marginTop: 2,
     textAlign: 'right',
   },
 });
