@@ -1950,7 +1950,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
   },
   goToProfileText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.regular,
     fontWeight: 'bold',
   },

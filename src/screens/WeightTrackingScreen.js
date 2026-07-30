@@ -46,7 +46,7 @@ export default function WeightTrackingScreen({ navigation }) {
           <MaterialIcons name={RTL_ICONS.back} size={24} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <MaterialIcons name="monitor-weight" size={28} color={COLORS.primary} />
+          <MaterialIcons name="monitor-weight" size={28} color={COLORS.tertiary} />
           <Text style={styles.title}>משקל נוכחי</Text>
         </View>
         <TouchableOpacity
@@ -64,14 +64,14 @@ export default function WeightTrackingScreen({ navigation }) {
 
       <View style={styles.weightControls}>
         <TouchableOpacity style={styles.controlButton} onPress={() => adjustWeight(-0.1)}>
-          <MaterialIcons name="remove" size={28} color={COLORS.text} />
+          <MaterialIcons name="remove" size={28} color={COLORS.textOnColor} />
         </TouchableOpacity>
         <View style={styles.sliderPlaceholder}>
           <View style={[styles.sliderFill, { width: weightProgress }]} />
           <View style={[styles.sliderThumb, { right: weightProgress }]} />
         </View>
         <TouchableOpacity style={styles.controlButton} onPress={() => adjustWeight(0.1)}>
-          <MaterialIcons name="add" size={28} color={COLORS.text} />
+          <MaterialIcons name="add" size={28} color={COLORS.textOnColor} />
         </TouchableOpacity>
       </View>
 
@@ -85,7 +85,7 @@ export default function WeightTrackingScreen({ navigation }) {
       </View>
 
       <View style={styles.goalCard}>
-        <MaterialIcons name="gps-fixed" size={40} color={COLORS.primary} />
+        <MaterialIcons name="gps-fixed" size={40} color={COLORS.tertiary} />
         <Text style={styles.goalLabel}>מטרה</Text>
         <Text style={styles.goalText}>חיטוב</Text>
         <View style={styles.goalWeights}>
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.tertiary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   sliderFill: {
     height: '100%',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.tertiary,
     borderRadius: 3,
     alignSelf: 'flex-end',
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.tertiary,
     marginRight: -13,
   },
   buttonRow: {
@@ -218,11 +218,11 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.tertiary,
     alignItems: 'center',
   },
   submitButtonText: {
-    color: COLORS.primary,
+    color: COLORS.tertiary,
     fontSize: FONTS.regular,
     fontWeight: '600',
   },
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   updateButtonText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.regular,
     fontWeight: '600',
   },

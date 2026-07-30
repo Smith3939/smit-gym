@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.regular,
     paddingVertical: SPACING.md,
   },

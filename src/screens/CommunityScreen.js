@@ -749,7 +749,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   publishBtnText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.small,
     fontWeight: '800',
   },
@@ -946,7 +946,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   acceptBtnText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.tiny,
     fontWeight: '800',
   },

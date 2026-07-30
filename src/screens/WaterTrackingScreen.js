@@ -50,7 +50,7 @@ export default function WaterTrackingScreen({ navigation }) {
           <MaterialIcons name={RTL_ICONS.back} size={28} color={COLORS.text} />
         </TouchableOpacity>
         <View style={styles.headerCenterRow}>
-          <MaterialIcons name="water-drop" size={28} color={COLORS.primary} />
+          <MaterialIcons name="water-drop" size={28} color={COLORS.secondary} />
           <Text style={styles.title}>מעקב מים</Text>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.backButton}>
@@ -63,7 +63,7 @@ export default function WaterTrackingScreen({ navigation }) {
           <View style={styles.circleOuter}>
             <View style={[styles.circleFill, { height: `${progress * 100}%` }]} />
             <View style={styles.circleContent}>
-              <MaterialIcons name="water-drop" size={36} color={COLORS.primary} />
+              <MaterialIcons name="water-drop" size={36} color={COLORS.secondary} />
               <Text style={styles.consumedText}>{(consumed / 1000).toFixed(1)}</Text>
               <Text style={styles.unitText}>ליטר</Text>
               <Text style={styles.goalText}>מתוך {(dailyGoal / 1000).toFixed(1)} ליטר</Text>
@@ -80,7 +80,7 @@ export default function WaterTrackingScreen({ navigation }) {
             <MaterialIcons
               name="local-drink"
               size={32}
-              color={i < filledGlasses ? COLORS.primary : COLORS.surfaceLight}
+              color={i < filledGlasses ? COLORS.secondary : COLORS.surfaceLight}
             />
           </View>
         ))}
@@ -88,22 +88,22 @@ export default function WaterTrackingScreen({ navigation }) {
 
       <View style={styles.quickActions}>
         <TouchableOpacity style={styles.quickButton} onPress={() => addWater(250)}>
-          <MaterialIcons name="local-drink" size={24} color={COLORS.text} />
+          <MaterialIcons name="local-drink" size={24} color={COLORS.textOnColor} />
           <Text style={styles.quickButtonText}>כוס (250 מ"ל)</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickButton} onPress={() => addWater(500)}>
-          <MaterialIcons name="water-drop" size={24} color={COLORS.text} />
+          <MaterialIcons name="water-drop" size={24} color={COLORS.textOnColor} />
           <Text style={styles.quickButtonText}>בקבוק (500 מ"ל)</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.quickButton} onPress={() => addWater(750)}>
-          <MaterialIcons name="water" size={24} color={COLORS.text} />
+          <MaterialIcons name="water" size={24} color={COLORS.textOnColor} />
           <Text style={styles.quickButtonText}>בקבוק גדול (750 מ"ל)</Text>
         </TouchableOpacity>
       </View>
 
       {log.length > 0 && (
         <TouchableOpacity style={styles.undoButton} onPress={removeLastEntry}>
-          <MaterialIcons name="undo" size={18} color={COLORS.primary} />
+          <MaterialIcons name="undo" size={18} color={COLORS.secondary} />
           <Text style={styles.undoText}>בטל אחרון</Text>
         </TouchableOpacity>
       )}
@@ -115,7 +115,7 @@ export default function WaterTrackingScreen({ navigation }) {
             <View key={entry.id} style={styles.logEntry}>
               <Text style={styles.logAmount}>{entry.amount} מ"ל</Text>
               <Text style={styles.logTime}>{entry.time}</Text>
-              <MaterialIcons name="local-drink" size={16} color={COLORS.primary} />
+              <MaterialIcons name="local-drink" size={16} color={COLORS.secondary} />
             </View>
           ))}
         </View>
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 100,
     borderWidth: 3,
-    borderColor: COLORS.primary,
+    borderColor: COLORS.secondary,
     overflow: 'hidden',
     justifyContent: 'flex-end',
     backgroundColor: COLORS.surface,
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.primary + '30',
+    backgroundColor: COLORS.secondary + '30',
   },
   circleContent: {
     position: 'absolute',
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   percentText: {
-    color: COLORS.primary,
+    color: COLORS.secondary,
     fontSize: FONTS.xlarge,
     fontWeight: 'bold',
     marginTop: SPACING.md,
@@ -235,13 +235,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondary,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     gap: SPACING.sm,
   },
   quickButtonText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.regular,
     fontWeight: '600',
   },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   undoText: {
-    color: COLORS.primary,
+    color: COLORS.secondary,
     fontSize: FONTS.small,
   },
   logSection: {

@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.regular,
     paddingVertical: SPACING.md,
   },
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   resetButtonText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
   },
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
   },
   backToLoginText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
   },

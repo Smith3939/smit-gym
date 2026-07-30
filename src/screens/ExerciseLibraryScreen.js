@@ -111,7 +111,7 @@ export default function ExerciseLibraryScreen({ navigation }) {
           <MaterialIcons
             name="star"
             size={18}
-            color={showFavoritesOnly ? COLORS.text : COLORS.primary}
+            color={showFavoritesOnly ? COLORS.textOnColor : COLORS.primary}
           />
           <Text style={[styles.groupChipText, showFavoritesOnly && styles.groupChipTextActive]}>
             מועדפים ({favorites.length})
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   groupChipTextActive: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
   },
   listContent: {
     paddingHorizontal: SPACING.md,

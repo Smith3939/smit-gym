@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
   },
   activityText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.regular,
   },
   saveButton: {
@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xl,
   },
   saveButtonText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.medium,
     fontWeight: 'bold',
   },

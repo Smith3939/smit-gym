@@ -810,7 +810,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   activeTabText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
   },
 
   // Session Header
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   setNumberText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.small,
     fontWeight: 'bold',
   },
@@ -1060,7 +1060,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   suggestedText: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.tiny,
     fontWeight: 'bold',
   },

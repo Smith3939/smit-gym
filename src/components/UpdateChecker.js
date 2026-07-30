@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     ...SHADOWS.glow,
   },
   text: {
-    color: COLORS.text,
+    color: COLORS.textOnColor,
     fontSize: FONTS.small,
     fontWeight: '800',
   },
