@@ -72,6 +72,33 @@ export default function InstallPrompt() {
   const [visible, setVisible] = useState(false);
   const [showIOSSheet, setShowIOSSheet] = useState(false);
   const [installed, setInstalled] = useState(false);
+  // The banner floats above the page. While someone is filling in a form
+  // (login / register) it must get out of the way, otherwise it sits on top
+  // of the fields and swallows their taps.
+  const [inputFocused, setInputFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isWeb) return;
+
+    const isFormField = (el) =>
+      !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+
+    const onFocusIn = (e) => { if (isFormField(e.target)) setInputFocused(true); };
+    const onFocusOut = () => {
+      // Let focus settle before deciding — tabbing between fields fires
+      // focusout before the next focusin.
+      setTimeout(() => {
+        setInputFocused(isFormField(document.activeElement));
+      }, 120);
+    };
+
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('focusout', onFocusOut);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('focusout', onFocusOut);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isWeb) return;
@@ -97,10 +124,18 @@ export default function InstallPrompt() {
     const dismissed = store.get(DISMISSED_KEY) === '1';
 
     // ── Chrome / Edge / Android: real install prompt ──────────────────────
+    let showTimer;
     const onBeforeInstall = (e) => {
       e.preventDefault();           // keep it; show our own UI first
       setDeferredPrompt(e);
-      if (!dismissed) setVisible(true);
+      // Hold off a few seconds — this can fire the instant the page loads,
+      // and popping over a login form the user is already filling in is worse
+      // than asking a moment later.
+      if (!dismissed) {
+        showTimer = setTimeout(() => {
+          if (!cancelled) setVisible(true);
+        }, 4000);
+      }
     };
 
     // ── Fired after a successful install (any surface) ────────────────────
@@ -131,6 +166,7 @@ export default function InstallPrompt() {
     return () => {
       cancelled = true;
       clearTimeout(iosTimer);
+      clearTimeout(showTimer);
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
       window.removeEventListener('appinstalled', onInstalled);
       displayModeQuery?.removeEventListener?.('change', onDisplayModeChange);
@@ -164,7 +200,8 @@ export default function InstallPrompt() {
     setVisible(false);
   };
 
-  if (installed || !visible) return null;
+  // Never cover a form the user is typing into.
+  if (installed || !visible || inputFocused) return null;
 
   return (
     <>

@@ -95,7 +95,20 @@ export default function LoginScreen({ navigation, route }) {
       else if (error.code === 'auth/operation-not-allowed') msg = 'יש להפעיל Email/Password ב-Firebase Authentication';
       else if (error.code === 'auth/configuration-not-found') msg = 'הגדרות Firebase Authentication חסרות לפרויקט הזה';
       console.error('Login failed:', error.code, error.message);
-      toast.error(msg);
+
+      // No such account (Firebase returns invalid-credential for an unknown
+      // email too) — send them to registration with the email carried over
+      // instead of leaving them stuck on a failing login form.
+      const looksUnregistered =
+        error.code === 'auth/user-not-found' ||
+        error.code === 'auth/invalid-credential';
+
+      if (looksUnregistered) {
+        toast.info('לא מצאנו חשבון כזה — בוא ניצור לך אחד', 4000);
+        navigation.navigate('Register', { email: cleanEmail });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }

@@ -25,11 +25,12 @@ function getRegisterErrorMessage(error) {
   return 'שגיאה בהרשמה, נסה שוב';
 }
 
-export default function RegisterScreen({ navigation }) {
+export default function RegisterScreen({ navigation, route }) {
   const { setUserProfile } = useAuth();
   const toast = useToast();
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  // Carried over when Login sends an unrecognised email here.
+  const [email, setEmail] = useState(route?.params?.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
