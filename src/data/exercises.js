@@ -1,12 +1,17 @@
+/**
+ * Muscle groups.
+ * `icon` is a MaterialCommunityIcons name; `color` gives each group its own
+ * identity in the exercise library tabs so they're distinguishable at a glance.
+ */
 export const MUSCLE_GROUPS = [
-  { id: 'chest', name: 'חזה', icon: 'fitness-center' },
-  { id: 'back', name: 'גב', icon: 'fitness-center' },
-  { id: 'shoulders', name: 'כתפיים', icon: 'fitness-center' },
-  { id: 'legs', name: 'רגליים', icon: 'fitness-center' },
-  { id: 'biceps', name: 'יד קדמית', icon: 'fitness-center' },
-  { id: 'triceps', name: 'יד אחורית', icon: 'fitness-center' },
-  { id: 'abs', name: 'בטן', icon: 'fitness-center' },
-  { id: 'cardio', name: 'אירובי', icon: 'directions-run' },
+  { id: 'chest', name: 'חזה', icon: 'weight-lifter', color: '#FF375F' },
+  { id: 'back', name: 'גב', icon: 'human-handsup', color: '#0A84FF' },
+  { id: 'shoulders', name: 'כתפיים', icon: 'arm-flex', color: '#BF5AF2' },
+  { id: 'legs', name: 'רגליים', icon: 'run-fast', color: '#30D158' },
+  { id: 'biceps', name: 'יד קדמית', icon: 'arm-flex-outline', color: '#FF9F0A' },
+  { id: 'triceps', name: 'יד אחורית', icon: 'dumbbell', color: '#5E5CE6' },
+  { id: 'abs', name: 'בטן', icon: 'stomach', color: '#FF6482' },
+  { id: 'cardio', name: 'אירובי', icon: 'heart-pulse', color: '#FF453A' },
 ];
 
 export const EXERCISES = {

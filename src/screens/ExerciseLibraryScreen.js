@@ -1,163 +1,242 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, FlatList,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
 import { MUSCLE_GROUPS, EXERCISES } from '../data/exercises';
 import { RTL_ICONS } from '../utils/rtl';
 
-function ExerciseItem({ exercise, isFavorite, onToggleFavorite }) {
+const FAVORITES_TAB = '__favorites__';
+
+/** One exercise row. */
+function ExerciseItem({ exercise, groupColor, isFavorite, onToggleFavorite }) {
   return (
-    <View style={styles.exerciseItem}>
-      <TouchableOpacity onPress={() => onToggleFavorite(exercise.id)}>
+    <View style={styles.card}>
+      <TouchableOpacity
+        onPress={() => onToggleFavorite(exercise.id)}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        style={styles.starBtn}
+      >
         <MaterialIcons
           name={isFavorite ? 'star' : 'star-border'}
-          size={28}
-          color={COLORS.primary}
+          size={26}
+          color={isFavorite ? COLORS.warningBright : COLORS.textDim}
         />
       </TouchableOpacity>
-      <TouchableOpacity style={styles.playIcon}>
-        <MaterialIcons name="play-circle-outline" size={28} color={COLORS.primary} />
-      </TouchableOpacity>
-      <View style={styles.exerciseItemDivider} />
-      <View style={styles.exerciseInfo}>
-        <Text style={styles.exerciseName}>{exercise.name}</Text>
-        <Text style={styles.exerciseMeta}>
-          {exercise.defaultSets} סטים × {exercise.defaultReps} חזרות
-        </Text>
+
+      <View style={styles.cardBody}>
+        <Text style={styles.exerciseName} numberOfLines={2}>{exercise.name}</Text>
+        <View style={styles.metaRow}>
+          <View style={[styles.metaPill, { backgroundColor: `${groupColor}14` }]}>
+            <Text style={[styles.metaPillText, { color: groupColor }]}>
+              {exercise.defaultSets} סטים
+            </Text>
+          </View>
+          <View style={[styles.metaPill, { backgroundColor: COLORS.surfaceLight }]}>
+            <Text style={[styles.metaPillText, { color: COLORS.textSecondary }]}>
+              {exercise.defaultReps} חזרות
+            </Text>
+          </View>
+        </View>
       </View>
+
+      <View style={[styles.cardAccent, { backgroundColor: groupColor }]} />
     </View>
   );
 }
 
 export default function ExerciseLibraryScreen({ navigation }) {
-  const [selectedGroup, setSelectedGroup] = useState('chest');
+  const insets = useSafeAreaInsets();
+  const [activeTab, setActiveTab] = useState('chest');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState([]);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const tabScrollRef = useRef(null);
 
-  const toggleFavorite = (exerciseId) => {
+  const toggleFavorite = (id) =>
     setFavorites((prev) =>
-      prev.includes(exerciseId)
-        ? prev.filter((id) => id !== exerciseId)
-        : [...prev, exerciseId]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  };
 
-  const filteredExercises = useMemo(() => {
-    let exercises = [];
+  // Count per group (memoised — the data is static)
+  const counts = useMemo(() => {
+    const c = {};
+    MUSCLE_GROUPS.forEach((g) => { c[g.id] = (EXERCISES[g.id] || []).length; });
+    return c;
+  }, []);
 
-    if (showFavoritesOnly) {
-      Object.values(EXERCISES).forEach((group) => {
-        group.forEach((ex) => {
-          if (favorites.includes(ex.id)) exercises.push(ex);
+  const showingFavorites = activeTab === FAVORITES_TAB;
+
+  const activeGroup = showingFavorites
+    ? { id: FAVORITES_TAB, name: 'מועדפים', color: COLORS.warningBright, icon: 'star' }
+    : MUSCLE_GROUPS.find((g) => g.id === activeTab) || MUSCLE_GROUPS[0];
+
+  /** Exercises for the active tab, plus the search filter. */
+  const visibleExercises = useMemo(() => {
+    let list;
+    if (showingFavorites) {
+      list = [];
+      Object.entries(EXERCISES).forEach(([groupId, exercises]) => {
+        exercises.forEach((ex) => {
+          if (favorites.includes(ex.id)) list.push({ ...ex, groupId });
         });
       });
     } else {
-      exercises = EXERCISES[selectedGroup] || [];
+      list = (EXERCISES[activeTab] || []).map((ex) => ({ ...ex, groupId: activeTab }));
     }
 
-    if (searchQuery.trim()) {
-      exercises = exercises.filter((ex) =>
-        ex.name.includes(searchQuery.trim())
-      );
-    }
+    const q = searchQuery.trim();
+    return q ? list.filter((ex) => ex.name.includes(q)) : list;
+  }, [activeTab, searchQuery, favorites, showingFavorites]);
 
-    return exercises;
-  }, [selectedGroup, searchQuery, favorites, showFavoritesOnly]);
+  const colorFor = (groupId) =>
+    MUSCLE_GROUPS.find((g) => g.id === groupId)?.color || COLORS.primary;
 
-  const selectedGroupName = showFavoritesOnly
-    ? 'מועדפים'
-    : MUSCLE_GROUPS.find((g) => g.id === selectedGroup)?.name || '';
+  /** Tab pill — icon + label + count. */
+  const renderTab = (group, isActive, count, iconSet = 'mc') => (
+    <TouchableOpacity
+      key={group.id}
+      onPress={() => setActiveTab(group.id)}
+      activeOpacity={0.85}
+      style={[
+        styles.tab,
+        isActive && { backgroundColor: group.color, borderColor: group.color },
+      ]}
+    >
+      {iconSet === 'mc' ? (
+        <MaterialCommunityIcons
+          name={group.icon}
+          size={18}
+          color={isActive ? COLORS.textOnColor : group.color}
+        />
+      ) : (
+        <MaterialIcons
+          name={group.icon}
+          size={18}
+          color={isActive ? COLORS.textOnColor : group.color}
+        />
+      )}
+      <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+        {group.name}
+      </Text>
+      <View
+        style={[
+          styles.tabCount,
+          isActive ? styles.tabCountActive : { backgroundColor: `${group.color}1A` },
+        ]}
+      >
+        <Text
+          style={[
+            styles.tabCountText,
+            { color: isActive ? COLORS.textOnColor : group.color },
+          ]}
+        >
+          {count}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <MaterialIcons name={RTL_ICONS.back} size={24} color={COLORS.text} />
+    <View style={styles.root}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.md }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <MaterialIcons name={RTL_ICONS.back} size={22} color={COLORS.text} />
         </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>תרגילים - {selectedGroupName}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Main')} style={styles.backButton}>
-          <MaterialIcons name="home" size={24} color={COLORS.text} />
+
+        <View style={styles.headerCenter}>
+          <Text style={styles.title}>ספריית תרגילים</Text>
+          <Text style={styles.subtitle}>
+            {visibleExercises.length} תרגילים · {activeGroup.name}
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Main')}
+          style={styles.iconBtn}
+        >
+          <MaterialIcons name="home" size={22} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.searchContainer}>
-        <MaterialIcons name="search" size={22} color={COLORS.textMuted} />
+      {/* Search */}
+      <View style={styles.searchBar}>
+        <MaterialIcons name="search" size={20} color={COLORS.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="חיפוש תרגיל"
+          placeholder="חיפוש תרגיל..."
           placeholderTextColor={COLORS.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           textAlign="right"
+          returnKeyType="search"
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            onPress={() => setSearchQuery('')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <MaterialIcons name="close" size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.groupScroll}
-        contentContainerStyle={styles.groupScrollContent}
-        bounces={false}
-        alwaysBounceHorizontal={false}
-        overScrollMode="never"
-      >
-        <TouchableOpacity
-          style={[styles.groupChip, showFavoritesOnly && styles.groupChipActive]}
-          onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+      {/* ── Muscle-group tabs ──────────────────────────────────────────── */}
+      <View style={styles.tabsWrap}>
+        <ScrollView
+          ref={tabScrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+          bounces={false}
+          overScrollMode="never"
         >
-          <MaterialIcons
-            name="star"
-            size={18}
-            color={showFavoritesOnly ? COLORS.textOnColor : COLORS.primary}
-          />
-          <Text style={[styles.groupChipText, showFavoritesOnly && styles.groupChipTextActive]}>
-            מועדפים ({favorites.length})
-          </Text>
-        </TouchableOpacity>
-        {MUSCLE_GROUPS.map((group) => (
-          <TouchableOpacity
-            key={group.id}
-            style={[
-              styles.groupChip,
-              selectedGroup === group.id && !showFavoritesOnly && styles.groupChipActive,
-            ]}
-            onPress={() => {
-              setSelectedGroup(group.id);
-              setShowFavoritesOnly(false);
-            }}
-          >
-            <Text style={[
-              styles.groupChipText,
-              selectedGroup === group.id && !showFavoritesOnly && styles.groupChipTextActive,
-            ]}>
-              {group.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+          {MUSCLE_GROUPS.map((g) => renderTab(g, activeTab === g.id, counts[g.id]))}
+          {renderTab(
+            { id: FAVORITES_TAB, name: 'מועדפים', color: COLORS.warningBright, icon: 'star' },
+            showingFavorites,
+            favorites.length,
+            'mi'
+          )}
+        </ScrollView>
+      </View>
 
+      {/* List */}
       <FlatList
-        data={filteredExercises}
-        keyExtractor={(item) => item.id}
+        data={visibleExercises}
+        keyExtractor={(item) => `${item.groupId}_${item.id}`}
         renderItem={({ item }) => (
           <ExerciseItem
             exercise={item}
+            groupColor={colorFor(item.groupId)}
             isFavorite={favorites.includes(item.id)}
             onToggleFavorite={toggleFavorite}
           />
         )}
         contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
         bounces={false}
-        alwaysBounceVertical={false}
         overScrollMode="never"
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <MaterialIcons name="search-off" size={48} color={COLORS.textMuted} />
+          <View style={styles.empty}>
+            <MaterialIcons
+              name={showingFavorites ? 'star-border' : 'search-off'}
+              size={44}
+              color={COLORS.textDim}
+            />
+            <Text style={styles.emptyTitle}>
+              {showingFavorites
+                ? 'אין עדיין תרגילים במועדפים'
+                : searchQuery
+                  ? 'לא נמצאו תרגילים'
+                  : 'אין תרגילים בקטגוריה'}
+            </Text>
             <Text style={styles.emptyText}>
-              {showFavoritesOnly ? 'אין תרגילים במועדפים' : 'לא נמצאו תרגילים'}
+              {showingFavorites
+                ? 'לחץ על הכוכב ליד תרגיל כדי לשמור אותו כאן'
+                : 'נסה חיפוש אחר או קטגוריה אחרת'}
             </Text>
           </View>
         }
@@ -167,19 +246,21 @@ export default function ExerciseLibraryScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: COLORS.background,
-    paddingTop: SPACING.xxl,
   },
+
+  // Header
   header: {
-    flexDirection: 'row',
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: SPACING.md,
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.md,
     gap: SPACING.sm,
   },
-  backButton: {
+  iconBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -189,106 +270,160 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
   title: {
     color: COLORS.text,
-    fontSize: FONTS.medium,
-    fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'center',
+    fontSize: FONTS.large,
+    fontWeight: '900',
+    letterSpacing: -0.4,
   },
-  searchContainer: {
-    flexDirection: 'row',
+  subtitle: {
+    color: COLORS.textMuted,
+    fontSize: FONTS.tiny,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+
+  // Search
+  searchBar: {
+    flexDirection: 'row-reverse',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    gap: SPACING.sm,
     marginHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.small,
   },
   searchInput: {
     flex: 1,
     color: COLORS.text,
     fontSize: FONTS.regular,
-    paddingVertical: SPACING.sm,
-    marginStart: SPACING.sm,
+    paddingVertical: SPACING.sm + 2,
   },
-  groupScroll: {
-    maxHeight: 50,
-    marginBottom: SPACING.md,
+
+  // Tabs
+  tabsWrap: {
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
   },
-  groupScrollContent: {
-    paddingHorizontal: SPACING.md,
+  tabsRow: {
+    // NOTE: plain `row` (not row-reverse) inside this RTL document lays the
+    // tabs out right-to-left AND puts the first tab at the scroll origin, so
+    // the initial category is visible without any scroll fix-up.
+    flexDirection: 'row',
     gap: SPACING.sm,
-    flexDirection: 'row',
-  },
-  groupChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: SPACING.md,
+  },
+  tab: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 6,
     paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.round,
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.xl,
     borderWidth: 1,
     borderColor: COLORS.border,
-    gap: SPACING.xs,
+    ...SHADOWS.small,
   },
-  groupChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  groupChipText: {
+  tabText: {
     color: COLORS.textSecondary,
     fontSize: FONTS.small,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  groupChipTextActive: {
+  tabTextActive: {
     color: COLORS.textOnColor,
   },
+  tabCount: {
+    minWidth: 22,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: BORDER_RADIUS.round,
+    alignItems: 'center',
+  },
+  tabCountActive: {
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  tabCountText: {
+    fontSize: FONTS.micro,
+    fontWeight: '900',
+  },
+
+  // List
   listContent: {
-    paddingHorizontal: SPACING.md,
+    padding: SPACING.md,
+    paddingTop: SPACING.sm,
+    gap: SPACING.sm,
     paddingBottom: SPACING.xxl,
   },
-  exerciseItem: {
-    flexDirection: 'row',
+  card: {
+    flexDirection: 'row-reverse',
     alignItems: 'center',
+    gap: SPACING.md,
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
+    borderRadius: BORDER_RADIUS.lg,
     padding: SPACING.md,
-    marginBottom: SPACING.sm,
     borderWidth: 1,
     borderColor: COLORS.border,
+    overflow: 'hidden',
+    ...SHADOWS.small,
   },
-  exerciseInfo: {
+  cardAccent: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  starBtn: {
+    padding: 2,
+  },
+  cardBody: {
     flex: 1,
+    alignItems: 'flex-end',
   },
   exerciseName: {
     color: COLORS.text,
     fontSize: FONTS.regular,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'right',
   },
-  exerciseMeta: {
-    color: COLORS.textMuted,
-    fontSize: FONTS.tiny,
-    textAlign: 'right',
-    marginTop: 2,
+  metaRow: {
+    flexDirection: 'row-reverse',
+    gap: SPACING.xs,
+    marginTop: 6,
   },
-  exerciseItemDivider: {
-    width: 2,
-    height: 30,
-    backgroundColor: COLORS.primary,
-    marginHorizontal: SPACING.md,
+  metaPill: {
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 3,
+    borderRadius: BORDER_RADIUS.round,
   },
-  playIcon: {
-    marginStart: SPACING.sm,
+  metaPillText: {
+    fontSize: FONTS.micro,
+    fontWeight: '700',
   },
-  emptyState: {
+
+  // Empty
+  empty: {
     alignItems: 'center',
-    paddingVertical: SPACING.xxl * 2,
+    paddingVertical: SPACING.xxl,
+    gap: SPACING.xs,
+  },
+  emptyTitle: {
+    color: COLORS.textSecondary,
+    fontSize: FONTS.regular,
+    fontWeight: '700',
+    marginTop: SPACING.sm,
   },
   emptyText: {
     color: COLORS.textMuted,
-    fontSize: FONTS.regular,
-    marginTop: SPACING.md,
+    fontSize: FONTS.small,
+    textAlign: 'center',
   },
 });
