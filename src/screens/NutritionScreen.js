@@ -336,8 +336,8 @@ function DailyFoodLogCard({ entries, totals, targetCalories, onAddFood, onRemove
   return (
     <GlassCard
       delay={250}
-      gradientColors={['rgba(52,211,153,0.18)', 'rgba(34,211,238,0.08)']}
-      borderColor="rgba(52,211,153,0.28)"
+      gradientColors={['rgba(48,209,88,0.18)', 'rgba(10,132,255,0.08)']}
+      borderColor="rgba(48,209,88,0.28)"
       style={styles.foodLogCard}
     >
       <View style={styles.foodLogHeader}>
@@ -401,8 +401,8 @@ function MacroTargetEditor({ draft, hasCustomTargets, onChange, onApply, onReset
   return (
     <GlassCard
       delay={175}
-      gradientColors={['rgba(255,191,36,0.14)', 'rgba(255,77,143,0.08)']}
-      borderColor="rgba(251,191,36,0.26)"
+      gradientColors={['rgba(255,191,36,0.14)', 'rgba(255,55,95,0.08)']}
+      borderColor="rgba(255,159,10,0.26)"
       style={styles.targetEditorCard}
     >
       <View style={styles.targetEditorHeader}>
@@ -928,20 +928,20 @@ export default function NutritionScreen({ navigation }) {
       >
         {/* Header */}
         <FadeInView style={styles.headerNew}>
-          <View style={styles.headerIconBg}>
-            <MaterialIcons name="restaurant" size={28} color={COLORS.success} />
-          </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>תזונה</Text>
             <Text style={styles.headerSubtitle}>תכנית התזונה שלך</Text>
+          </View>
+          <View style={styles.headerIconBg}>
+            <MaterialIcons name="restaurant" size={22} color={COLORS.success} />
           </View>
         </FadeInView>
 
         {/* Hero Nutrition Card */}
         <GlassCard
           delay={100}
-          gradientColors={['rgba(76,217,100,0.25)', 'rgba(91,192,235,0.1)']}
-          borderColor="rgba(76,217,100,0.3)"
+          gradientColors={['rgba(48,209,88,0.25)', 'rgba(10,132,255,0.1)']}
+          borderColor="rgba(48,209,88,0.3)"
           style={styles.heroCard}
           glow
         >
@@ -960,15 +960,15 @@ export default function NutritionScreen({ navigation }) {
 
               {nutritionPlan?.macros && (
                 <View style={styles.macrosRow}>
-                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(76,217,100,0.2)' }]}>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(48,209,88,0.2)' }]}>
                     <Text style={[styles.macroValue, { color: COLORS.success }]}>{Math.round(consumedTotals.protein)}ג</Text>
                     <Text style={styles.macroLabel}>חלבון</Text>
                   </View>
-                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,182,39,0.2)' }]}>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,159,10,0.2)' }]}>
                     <Text style={[styles.macroValue, { color: COLORS.secondary }]}>{Math.round(consumedTotals.carbs)}ג</Text>
                     <Text style={styles.macroLabel}>פחמ׳</Text>
                   </View>
-                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,77,143,0.2)' }]}>
+                  <View style={[styles.macroBadge, { backgroundColor: 'rgba(255,55,95,0.2)' }]}>
                     <Text style={[styles.macroValue, { color: COLORS.primary }]}>{Math.round(consumedTotals.fat)}ג</Text>
                     <Text style={styles.macroLabel}>שומן</Text>
                   </View>
@@ -994,7 +994,7 @@ export default function NutritionScreen({ navigation }) {
         {/* AI Consultation - now styled as glass card */}
         <GlassCard
           onPress={() => navigation?.navigate?.('AIChat')}
-          gradientColors={['rgba(160,108,213,0.2)', 'rgba(91,192,235,0.1)']}
+          gradientColors={['rgba(160,108,213,0.2)', 'rgba(10,132,255,0.1)']}
           borderColor="rgba(160,108,213,0.4)"
           delay={200}
           style={{ marginBottom: SPACING.md, padding: 0 }}
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.5)',
+    borderColor: 'rgba(48,209,88,0.5)',
   },
   shareMenuButtonText: {
     color: COLORS.success,
@@ -1140,9 +1140,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: COLORS.text,
-    fontSize: FONTS.xlarge,
-    fontWeight: 'bold',
-    textAlign: 'right',
+    fontSize: FONTS.title,
+    fontWeight: '900',
+    letterSpacing: -0.8,
   },
   headerSubtitle: {
     color: COLORS.textMuted,
@@ -1179,13 +1179,13 @@ const styles = StyleSheet.create({
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(76,217,100,0.2)',
+    backgroundColor: 'rgba(48,209,88,0.2)',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: 999,
     gap: 4,
     borderWidth: 1,
-    borderColor: 'rgba(76,217,100,0.4)',
+    borderColor: 'rgba(48,209,88,0.4)',
   },
   heroBadgeText: {
     color: COLORS.success,
@@ -1631,9 +1631,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(251,191,36,0.12)',
+    backgroundColor: 'rgba(255,159,10,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(251,191,36,0.28)',
+    borderColor: 'rgba(255,159,10,0.28)',
   },
   targetGrid: {
     flexDirection: 'row',
@@ -1819,7 +1819,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   categoryChipActive: {
-    backgroundColor: 'rgba(52,211,153,0.18)',
+    backgroundColor: 'rgba(48,209,88,0.18)',
     borderColor: COLORS.success,
   },
   categoryChipText: {
@@ -1848,7 +1848,7 @@ const styles = StyleSheet.create({
   },
   foodPickerItemActive: {
     borderColor: COLORS.success,
-    backgroundColor: 'rgba(52,211,153,0.12)',
+    backgroundColor: 'rgba(48,209,88,0.12)',
   },
   foodPickerNameWrap: {
     flex: 1,

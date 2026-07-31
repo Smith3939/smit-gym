@@ -99,8 +99,8 @@ export default function PublicProfileScreen({ navigation, route }) {
           {/* Profile hero */}
           <GlassCard
             style={styles.heroCard}
-            gradientColors={['rgba(255,77,143,0.18)', 'rgba(167,139,250,0.1)']}
-            borderColor="rgba(255,77,143,0.3)"
+            gradientColors={['rgba(255,55,95,0.18)', 'rgba(191,90,242,0.1)']}
+            borderColor="rgba(255,55,95,0.3)"
           >
             <View style={styles.heroInner}>
               <Avatar photo={profile.photo} size={88} />
@@ -296,9 +296,9 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   buddyBtnAccepted: {
-    backgroundColor: 'rgba(52,211,153,0.12)',
+    backgroundColor: 'rgba(48,209,88,0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.4)',
+    borderColor: 'rgba(48,209,88,0.4)',
   },
   buddyBtnPending: {
     backgroundColor: COLORS.surfaceLight,

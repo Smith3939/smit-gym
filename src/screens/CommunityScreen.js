@@ -112,7 +112,7 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
 
       {/* Shared meal payload */}
       {post.type === 'meal' && post.payload && (
-        <View style={[styles.payloadCard, { borderColor: 'rgba(52,211,153,0.3)' }]}>
+        <View style={[styles.payloadCard, { borderColor: 'rgba(48,209,88,0.3)' }]}>
           <View style={styles.payloadHeader}>
             <MaterialIcons name="restaurant" size={16} color={COLORS.success} />
             <Text style={styles.payloadTitle}>התפריט שלי · {post.payload.calories} קל'</Text>
@@ -493,8 +493,8 @@ export default function CommunityScreen({ navigation }) {
                 {requests.length > 0 && (
                   <GlassCard
                     style={styles.requestsCard}
-                    gradientColors={['rgba(255,77,143,0.2)', 'rgba(167,139,250,0.1)']}
-                    borderColor="rgba(255,77,143,0.35)"
+                    gradientColors={['rgba(255,55,95,0.2)', 'rgba(191,90,242,0.1)']}
+                    borderColor="rgba(255,55,95,0.35)"
                     noAnimation
                   >
                     <Text style={styles.requestsTitle}>בקשות אימון משותף 🔥</Text>
@@ -528,8 +528,8 @@ export default function CommunityScreen({ navigation }) {
                   <TouchableOpacity onPress={handleShareLocation} activeOpacity={0.85}>
                     <GlassCard
                       style={styles.locationPrompt}
-                      gradientColors={['rgba(34,211,238,0.18)', 'rgba(167,139,250,0.08)']}
-                      borderColor="rgba(34,211,238,0.35)"
+                      gradientColors={['rgba(10,132,255,0.18)', 'rgba(191,90,242,0.08)']}
+                      borderColor="rgba(10,132,255,0.35)"
                       noAnimation
                     >
                       <View style={styles.locationPromptInner}>
@@ -821,7 +821,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,77,143,0.3)',
+    borderColor: 'rgba(255,55,95,0.3)',
   },
   payloadHeader: {
     flexDirection: 'row-reverse',
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 3,
     marginTop: 4,
-    backgroundColor: 'rgba(34,211,238,0.12)',
+    backgroundColor: 'rgba(10,132,255,0.12)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 999,
@@ -895,8 +895,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buddyBtnAccepted: {
-    borderColor: 'rgba(52,211,153,0.5)',
-    backgroundColor: 'rgba(52,211,153,0.1)',
+    borderColor: 'rgba(48,209,88,0.5)',
+    backgroundColor: 'rgba(48,209,88,0.1)',
   },
   buddyBtnPending: {
     borderColor: COLORS.border,

@@ -432,20 +432,20 @@ export default function WorkoutScreen() {
       >
         {/* Header */}
         <FadeInView style={styles.header}>
-          <View style={styles.headerIconBg}>
-            <MaterialIcons name="fitness-center" size={28} color={COLORS.primary} />
-          </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>אימונים</Text>
             <Text style={styles.headerSubtitle}>תוכנית האימונים שלך</Text>
+          </View>
+          <View style={styles.headerIconBg}>
+            <MaterialIcons name="fitness-center" size={22} color={COLORS.primary} />
           </View>
         </FadeInView>
 
         {/* Hero Workout Card */}
         <GlassCard
           delay={100}
-          gradientColors={['rgba(255,77,143,0.25)', 'rgba(167,139,250,0.12)']}
-          borderColor="rgba(255,77,143,0.3)"
+          gradientColors={['rgba(255,55,95,0.25)', 'rgba(191,90,242,0.12)']}
+          borderColor="rgba(255,55,95,0.3)"
           style={styles.heroCard}
           glow
         >
@@ -653,9 +653,9 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   headerIconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
@@ -664,9 +664,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: COLORS.text,
-    fontSize: FONTS.xlarge,
-    fontWeight: 'bold',
-    textAlign: 'right',
+    fontSize: FONTS.title,
+    fontWeight: '900',
+    letterSpacing: -0.8,
   },
   headerSubtitle: {
     color: COLORS.textMuted,
@@ -703,13 +703,13 @@ const styles = StyleSheet.create({
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,182,39,0.2)',
+    backgroundColor: 'rgba(255,159,10,0.2)',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: 999,
     gap: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,182,39,0.4)',
+    borderColor: 'rgba(255,159,10,0.4)',
   },
   heroBadgeText: {
     color: COLORS.secondary,

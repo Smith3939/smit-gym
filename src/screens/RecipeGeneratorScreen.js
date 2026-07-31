@@ -221,19 +221,19 @@ function RecipeDetail({ recipe, calorieBudget, onClose }) {
             {/* Macros breakdown for selected portions */}
             {portionData.portions > 0 && (
               <View style={styles.budgetMacros}>
-                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(76,217,100,0.15)' }]}>
+                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(48,209,88,0.15)' }]}>
                   <Text style={[styles.budgetMacroValue, { color: COLORS.success }]}>
                     {portionData.totalProtein}ג
                   </Text>
                   <Text style={styles.budgetMacroLabel}>חלבון</Text>
                 </View>
-                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(255,182,39,0.15)' }]}>
+                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(255,159,10,0.15)' }]}>
                   <Text style={[styles.budgetMacroValue, { color: COLORS.secondary }]}>
                     {portionData.totalCarbs}ג
                   </Text>
                   <Text style={styles.budgetMacroLabel}>פחמ׳</Text>
                 </View>
-                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(255,77,143,0.15)' }]}>
+                <View style={[styles.budgetMacroChip, { backgroundColor: 'rgba(255,55,95,0.15)' }]}>
                   <Text style={[styles.budgetMacroValue, { color: COLORS.primary }]}>
                     {portionData.totalFat}ג
                   </Text>
@@ -368,8 +368,8 @@ export default function RecipeGeneratorScreen({ navigation }) {
 
         {/* Calorie Budget Input */}
         <GlassCard
-          gradientColors={['rgba(255,77,143,0.15)', 'rgba(251,191,36,0.08)']}
-          borderColor="rgba(255,77,143,0.3)"
+          gradientColors={['rgba(255,55,95,0.15)', 'rgba(255,159,10,0.08)']}
+          borderColor="rgba(255,55,95,0.3)"
           delay={100}
           style={styles.budgetInputCard}
         >
@@ -866,14 +866,14 @@ const styles = StyleSheet.create({
   remainingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,182,39,0.15)',
+    backgroundColor: 'rgba(255,159,10,0.15)',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: 999,
     marginTop: SPACING.sm,
     gap: 2,
     borderWidth: 1,
-    borderColor: 'rgba(255,182,39,0.3)',
+    borderColor: 'rgba(255,159,10,0.3)',
   },
   remainingText: {
     color: COLORS.secondary,
@@ -1004,11 +1004,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: SPACING.sm,
     padding: SPACING.md,
-    backgroundColor: 'rgba(255,182,39,0.08)',
+    backgroundColor: 'rgba(255,159,10,0.08)',
     borderRadius: BORDER_RADIUS.md,
     marginBottom: SPACING.xs,
     borderWidth: 1,
-    borderColor: 'rgba(255,182,39,0.2)',
+    borderColor: 'rgba(255,159,10,0.2)',
   },
   tipText: {
     flex: 1,

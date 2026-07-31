@@ -195,13 +195,13 @@ const styles = StyleSheet.create({
   aiStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(52,211,153,0.15)',
+    backgroundColor: 'rgba(48,209,88,0.15)',
     paddingHorizontal: SPACING.sm,
     paddingVertical: 4,
     borderRadius: 999,
     gap: 4,
     borderWidth: 1,
-    borderColor: 'rgba(52,211,153,0.3)',
+    borderColor: 'rgba(48,209,88,0.3)',
   },
   aiStatusDot: {
     width: 6,
