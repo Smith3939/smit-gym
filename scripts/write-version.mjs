@@ -49,7 +49,7 @@ if (existsSync(manifestTemplatePath)) {
   console.log(`write-version: versioned PWA icon URLs with ${iconVersion}`);
 }
 
-for (const f of ['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png']) {
+for (const f of ['manifest.json', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'sw.js']) {
   const src = join(publicDir, f);
   const dest = join(distDir, f);
   if (existsSync(src) && !existsSync(dest)) {
@@ -69,11 +69,20 @@ if (existsSync(indexPath)) {
     '<meta name="mobile-web-app-capable" content="yes" />',
     '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
     '<meta name="apple-mobile-web-app-title" content="Smit Gym" />',
+    // Registering a service worker is what makes the app installable —
+    // Chrome only fires `beforeinstallprompt` when one is active.
+    '<script>',
+    '      if ("serviceWorker" in navigator) {',
+    '        window.addEventListener("load", function () {',
+    '          navigator.serviceWorker.register("/sw.js").catch(function () {});',
+    '        });',
+    '      }',
+    '    </script>',
   ].join('\n    ');
 
   if (!html.includes('rel="manifest"')) {
     html = html.replace('</head>', `    ${headTags}\n  </head>`);
     writeFileSync(indexPath, html);
-    console.log('write-version: injected PWA head tags into index.html');
+    console.log('write-version: injected PWA head tags + SW registration');
   }
 }

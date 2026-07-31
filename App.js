@@ -7,7 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/context/AuthContext';
 import { ToastProvider } from './src/components/Toast';
-import AndroidDownloadPrompt from './src/components/AndroidDownloadPrompt';
+import InstallPrompt from './src/components/InstallPrompt';
 import UpdateChecker from './src/components/UpdateChecker';
 import { COLORS } from './src/config/theme';
 
@@ -122,7 +122,7 @@ export default function App() {
               <StatusBar style="dark" backgroundColor={COLORS.background} />
               <AppNavigator />
             </NavigationContainer>
-            <AndroidDownloadPrompt />
+            <InstallPrompt />
             <UpdateChecker />
           </ToastProvider>
         </AuthProvider>
