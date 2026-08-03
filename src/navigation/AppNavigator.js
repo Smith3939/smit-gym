@@ -39,13 +39,23 @@ function AuthNavigator() {
   );
 }
 
+/**
+ * Bottom-tab metrics.
+ * Content box = TAB_BAR_CONTENT_HEIGHT - 2*TAB_BAR_V_PADDING, and must fit
+ * ICON_SIZE + the 11px label + its 2px margin (~24 + 2 + 15 = 41px) with
+ * room to spare, or React Navigation clips the icons.
+ */
+const ICON_SIZE = 24;
+const TAB_BAR_V_PADDING = 10;
+const TAB_BAR_CONTENT_HEIGHT = 74; // -> 54px content box
+
 function HomeTabs() {
   const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       sceneContainerStyle={{ backgroundColor: COLORS.background }}
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color }) => {
           let iconName;
           if (route.name === 'HomeTab') iconName = 'home';
           else if (route.name === 'WorkoutTab') iconName = 'fitness-center';
@@ -53,7 +63,9 @@ function HomeTabs() {
           else if (route.name === 'CommunityTab') iconName = 'groups';
           else if (route.name === 'AIChat') iconName = 'smart-toy';
           else if (route.name === 'Profile') iconName = 'person';
-          return <MaterialIcons name={iconName} size={size} color={color} />;
+          // Fixed size rather than the injected `size` — that value varies by
+          // platform and was overflowing the bar, clipping the icons.
+          return <MaterialIcons name={iconName} size={ICON_SIZE} color={color} />;
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textMuted,
@@ -61,14 +73,27 @@ function HomeTabs() {
           ...RTL_DIRECTION,
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          height: 65 + insets.bottom,
-          paddingBottom: 8 + insets.bottom,
-          paddingTop: 8,
+          // Room for icon + label + breathing space, then the device inset on
+          // top of that. (Old math left only 49px of content box, which cut
+          // the icons off.)
+          height: TAB_BAR_CONTENT_HEIGHT + insets.bottom,
+          paddingTop: TAB_BAR_V_PADDING,
+          paddingBottom: TAB_BAR_V_PADDING + insets.bottom,
         },
         tabBarItemStyle: RTL_DIRECTION,
+        // Pin the stacked layout. Left to itself React Navigation puts the
+        // label beside the icon on wider viewports, which changes the height
+        // the bar needs and is what made this hard to reproduce off-device.
+        tabBarLabelPosition: 'below-icon',
+        tabBarIconStyle: {
+          height: ICON_SIZE,
+          width: ICON_SIZE,
+        },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          marginTop: 2,
+          includeFontPadding: false,
         },
         headerShown: false,
       })}
