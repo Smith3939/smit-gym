@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import AuroraBackground from '../components/AuroraBackground';
 import Avatar from '../components/Avatar';
+import CoachSection from '../components/CoachSection';
 import { calculateBMI, calculateBMR, calculateTDEE, calculateTargetCalories } from '../services/nutritionEngine';
 import { createProfileShare, SHARE_PRESETS } from '../services/profileShareService';
 import { upsertPublicProfile, pickAndCompressImage } from '../services/socialService';
@@ -441,6 +442,8 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.activityText}>{level.label}</Text>
           </TouchableOpacity>
         ))}
+
+        <CoachSection navigation={navigation} profile={profile} />
 
         <View style={styles.shareCard}>
           <TouchableOpacity

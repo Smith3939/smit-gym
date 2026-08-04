@@ -24,6 +24,8 @@ import RecipeGeneratorScreen from '../screens/RecipeGeneratorScreen';
 import SharedProfileScreen from '../screens/SharedProfileScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import PublicProfileScreen from '../screens/PublicProfileScreen';
+import CoachDashboardScreen from '../screens/CoachDashboardScreen';
+import TraineeDetailScreen from '../screens/TraineeDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -126,6 +128,8 @@ export default function AppNavigator() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="RecipeGenerator" component={RecipeGeneratorScreen} />
           <Stack.Screen name="PublicProfile" component={PublicProfileScreen} />
+          <Stack.Screen name="CoachDashboard" component={CoachDashboardScreen} />
+          <Stack.Screen name="TraineeDetail" component={TraineeDetailScreen} />
         </>
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />

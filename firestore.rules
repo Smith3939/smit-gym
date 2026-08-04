@@ -13,13 +13,70 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // ── Private data: only the owner ─────────────────────────────────────
-    match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+    // The trainee's own doc records who coaches them. That single field is the
+    // whole authorisation story for the coach module — a coach is only ever
+    // "my coach" because the trainee accepted an invite, which is the only
+    // thing that writes it.
+    function isCoachOf(userId) {
+      return signedIn() &&
+        get(/databases/$(database)/documents/users/$(userId)).data.coachUid == request.auth.uid;
+    }
 
+    // ── Private data: the owner writes; their coach may read ─────────────
+    match /users/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
+      allow write: if signedIn() && request.auth.uid == userId;
+
+      // Progress history (workoutLogs, weightHistory, waterLog…) — the coach
+      // needs to read this to see how the trainee is doing, never to write it.
       match /{subcollection=**} {
-        allow read, write: if signedIn() && request.auth.uid == userId;
+        allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
+        allow write: if signedIn() && request.auth.uid == userId;
       }
+    }
+
+    // ── Coach-authored plans ─────────────────────────────────────────────
+    // Kept OUT of the trainee's own document on purpose: the coach gets a
+    // whole collection they may write, instead of us trying to police which
+    // fields of users/{uid} they're allowed to touch.
+    match /users/{userId}/coachPlans/{planId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
+      allow create, update, delete: if isCoachOf(userId);
+    }
+
+    match /users/{userId}/coachNotes/{noteId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
+      allow create, update, delete: if isCoachOf(userId);
+    }
+
+    // ── Coach public profile ─────────────────────────────────────────────
+    match /coachProfiles/{coachUid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == coachUid;
+    }
+
+    // ── The relationship itself ──────────────────────────────────────────
+    match /coachLinks/{linkId} {
+      allow read: if signedIn() &&
+        (resource.data.coachUid == request.auth.uid || resource.data.traineeUid == request.auth.uid);
+      // Only the trainee creates the link — that IS the act of consenting.
+      allow create: if signedIn() && request.resource.data.traineeUid == request.auth.uid;
+      // Either side can end it.
+      allow update: if signedIn() &&
+        (resource.data.coachUid == request.auth.uid || resource.data.traineeUid == request.auth.uid);
+    }
+
+    // ── Invite codes ─────────────────────────────────────────────────────
+    // Readable by any signed-in user (you must be able to look up a code you
+    // were given), but the document only ever exposes the coach's name.
+    match /inviteCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.coachUid == request.auth.uid;
+      // Redeeming = stamping usedBy with your own uid, once.
+      allow update: if signedIn() &&
+        resource.data.usedBy == null &&
+        request.resource.data.usedBy == request.auth.uid;
+      allow delete: if signedIn() && resource.data.coachUid == request.auth.uid;
     }
 
     // Share documents contain a limited snapshot selected by the owner.
