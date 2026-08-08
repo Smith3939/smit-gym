@@ -654,7 +654,7 @@ export default function WorkoutScreen() {
             ) : (
               <>
                 <MaterialIcons name="check-circle" size={24} color={COLORS.textOnColor} />
-                <Text style={styles.finishButtonText}>סיים ושמור אימון</Text>
+                <Text style={styles.finishButtonText}>סמן אימון כהושלם</Text>
               </>
             )}
           </LinearGradient>
