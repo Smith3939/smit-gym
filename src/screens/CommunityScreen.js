@@ -37,10 +37,12 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
   const toast = useToast();
 
   useEffect(() => {
+    if (post.pending) return;
     getLikeInfo(post.id, myUid).then(setLikeInfo).catch(() => {});
-  }, [post.id]);
+  }, [post.id, post.pending]);
 
   const handleLike = async () => {
+    if (post.pending) return;
     // Optimistic update
     setLikeInfo((p) => ({
       count: p.count + (p.isLiked ? -1 : 1),
@@ -54,6 +56,7 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
   };
 
   const handleDelete = async () => {
+    if (post.pending) return;
     try {
       await deletePost(post.id);
       onDeleted(post.id);
@@ -257,23 +260,49 @@ export default function CommunityScreen({ navigation }) {
   useEffect(() => { loadAll(); }, [loadAll]);
 
   const handlePost = async () => {
-    if (!composerText.trim() && !composerImage) return;
+    const text = composerText.trim();
+    const image = composerImage;
+    if (!text && !image) return;
+
+    // Show the post immediately. The Firestore write can take longer when an
+    // image is included, but the user should not wait for a second feed load.
+    const optimisticId = `pending-${Date.now()}`;
+    setPosts((prev) => [{
+      id: optimisticId,
+      uid: user.uid,
+      authorName: myName,
+      authorPhoto: myPhoto,
+      authorGym: userProfile?.gymName || null,
+      text,
+      image,
+      type: 'text',
+      payload: null,
+      createdAt: { seconds: Math.floor(Date.now() / 1000) },
+      pending: true,
+    }, ...prev]);
+    setComposerText('');
+    setComposerImage(null);
     setPosting(true);
     try {
-      await createPost({
+      const postId = await createPost({
         uid: user.uid,
         authorName: myName,
         authorPhoto: myPhoto,
         authorGym: userProfile?.gymName || null,
-        text: composerText.trim(),
-        image: composerImage,
+        text,
+        image,
         type: 'text',
         payload: null,
+      }).catch((error) => {
+        setPosts((prev) => prev.filter((post) => post.id !== optimisticId));
+        setComposerText(text);
+        setComposerImage(image);
+        throw error;
       });
-      setComposerText('');
-      setComposerImage(null);
+      setPosts((prev) => prev.map((post) => (
+        post.id === optimisticId ? { ...post, id: postId, pending: false } : post
+      )));
       toast.success('הפוסט פורסם! 🎉');
-      loadAll();
     } catch (e) {
       toast.error('הפרסום נכשל, נסה שוב');
     }

@@ -163,7 +163,7 @@ export async function respondToBuddyRequest(requestId, status) {
  * Open the image library, compress the chosen photo and return a small
  * base64 data-URI (or null if cancelled). Fits Firestore's 1MB doc limit.
  */
-export async function pickAndCompressImage({ maxWidth = 700, quality = 0.55 } = {}) {
+export async function pickAndCompressImage({ maxWidth = 520, quality = 0.5 } = {}) {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted) return null;
 
@@ -182,8 +182,9 @@ export async function pickAndCompressImage({ maxWidth = 700, quality = 0.55 } = 
       { compress: q, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
     const dataUri = `data:image/jpeg;base64,${manipulated.base64}`;
-    // Keep well under Firestore's 1MB per-document limit
-    if (dataUri.length < 700_000) return dataUri;
+    // Keep a comfortable margin under Firestore's 1MB document limit. Smaller
+    // payloads also make publishing noticeably faster on mobile connections.
+    if (dataUri.length < 450_000) return dataUri;
     q = q * 0.6;
   }
   return null;
