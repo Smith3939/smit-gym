@@ -73,6 +73,25 @@ export async function saveWorkoutLog(uid, workoutData) {
   return logId;
 }
 
+/** Save the current in-progress workout so every field change survives reloads. */
+export async function saveWorkoutDraft(uid, sessionKey, workoutData) {
+  if (!uid || !sessionKey) return;
+  await setDoc(doc(db, 'users', uid, 'workoutDrafts', encodeURIComponent(sessionKey)), {
+    ...workoutData,
+    sessionKey,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+/** Load the current in-progress workout, if one exists. */
+export async function getWorkoutDraft(uid, sessionKey) {
+  if (!uid || !sessionKey) return null;
+  const draftDoc = await getDoc(
+    doc(db, 'users', uid, 'workoutDrafts', encodeURIComponent(sessionKey))
+  );
+  return draftDoc.exists() ? draftDoc.data() : null;
+}
+
 export async function saveWeightEntry(uid, weight) {
   const entryId = `${Date.now()}`;
   await setDoc(doc(db, 'users', uid, 'weightHistory', entryId), {

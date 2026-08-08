@@ -23,7 +23,7 @@ import { FadeInView } from '../components/AnimatedCard';
 import AuroraBackground from '../components/AuroraBackground';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { saveWorkoutLog } from '../services/authService';
+import { saveWorkoutLog, saveWorkoutDraft, getWorkoutDraft } from '../services/authService';
 import { createPost } from '../services/socialService';
 import {
   generateProgram,
@@ -213,6 +213,8 @@ export default function WorkoutScreen() {
   const [swapping, setSwapping] = useState(false);
   const [saving, setSaving] = useState(false);
   const [setLogs, setSetLogs] = useState({});
+  const [draftLoadedKey, setDraftLoadedKey] = useState(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
   const [swapModal, setSwapModal] = useState({
     visible: false,
     alternatives: [],
@@ -233,6 +235,61 @@ export default function WorkoutScreen() {
       setActiveDay(Object.keys(newProgram.sessions)[0]);
     }
   }, [userProfile?.goal, userProfile?.trainingLevel, userProfile?.activityLevel]);
+
+  // Restore the active session's draft whenever the user opens or changes days.
+  useEffect(() => {
+    if (!user?.uid || !activeDay) return undefined;
+
+    let cancelled = false;
+    setDraftLoadedKey(null);
+    setAutoSaveStatus('loading');
+
+    getWorkoutDraft(user.uid, activeDay)
+      .then((draft) => {
+        if (cancelled) return;
+        if (draft?.programSnapshot?.sessions) {
+          setProgram(draft.programSnapshot);
+        }
+        setSetLogs(draft?.setLogs || {});
+        setDraftLoadedKey(activeDay);
+        setAutoSaveStatus('saved');
+      })
+      .catch((error) => {
+        console.warn('Workout draft load failed:', error);
+        if (cancelled) return;
+        setSetLogs({});
+        setDraftLoadedKey(activeDay);
+        setAutoSaveStatus('error');
+      });
+
+    return () => { cancelled = true; };
+  }, [user?.uid, activeDay]);
+
+  // Persist every edit after a short debounce, so typing a number does not
+  // create a Firestore write for every individual keypress.
+  useEffect(() => {
+    if (!user?.uid || !program || !activeDay || draftLoadedKey !== activeDay) return undefined;
+
+    setAutoSaveStatus('saving');
+    const timer = setTimeout(async () => {
+      try {
+        const session = program.sessions?.[activeDay];
+        await saveWorkoutDraft(user.uid, activeDay, {
+          programName: program.name,
+          programType: program.type,
+          sessionName: session?.name || '',
+          programSnapshot: program,
+          setLogs,
+        });
+        setAutoSaveStatus('saved');
+      } catch (error) {
+        console.warn('Workout draft save failed:', error);
+        setAutoSaveStatus('error');
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [user?.uid, program, activeDay, setLogs, draftLoadedKey]);
 
   // Handle program type selection
   const handleSelectProgram = useCallback((programType) => {
@@ -577,7 +634,14 @@ export default function WorkoutScreen() {
         />
       ))}
 
-        {/* Finish Workout Button */}
+        <Text style={[styles.autoSaveStatus, autoSaveStatus === 'error' && styles.autoSaveError]}>
+          {autoSaveStatus === 'loading' && 'טוען נתונים שמורים...'}
+          {autoSaveStatus === 'saving' && 'שומר אוטומטית...'}
+          {autoSaveStatus === 'saved' && '✓ נשמר אוטומטית'}
+          {autoSaveStatus === 'error' && 'השמירה נכשלה — ננסה שוב בשינוי הבא'}
+        </Text>
+
+        {/* Optional completion marker; the set values are already auto-saved. */}
         <TouchableOpacity activeOpacity={0.85} onPress={handleFinishWorkout} disabled={saving}>
           <LinearGradient
             colors={GRADIENTS.primary}
@@ -947,6 +1011,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     paddingVertical: 2,
+  },
+
+  autoSaveStatus: {
+    color: COLORS.success,
+    fontSize: FONTS.tiny,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
+  },
+  autoSaveError: {
+    color: COLORS.warning,
   },
 
   // Finish Button
