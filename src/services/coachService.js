@@ -5,8 +5,8 @@
  *  - A coach issues a one-time invite code.
  *  - The trainee redeems it and explicitly approves; only then does the link
  *    become active and `users/{traineeUid}.coachUid` get set.
- *  - `coachUid` on the trainee doc is what the security rules check, so the
- *    rule is a single unambiguous lookup.
+ *  - Rules allow the coach to read the trainee only while `coachUid` matches
+ *    and `coachLinkId` points at an active coachLinks doc for that pair.
  *  - Either side can end the link at any time.
  *
  * Phase 1 is read-only for the coach (dashboard + progress). Plan editing
@@ -14,8 +14,8 @@
  */
 
 import {
-  collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, limit, serverTimestamp,
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, serverTimestamp, writeBatch, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
@@ -56,7 +56,7 @@ export async function disableCoachMode(uid) {
   await updateDoc(doc(db, 'users', uid), { isCoach: false });
 }
 
-function randomCode(length = 4) {
+function randomCode(length = 6) {
   let out = '';
   for (let i = 0; i < length; i++) {
     out += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
@@ -73,16 +73,17 @@ export async function createInviteCode(coachUid, coachName) {
   expiresAt.setDate(expiresAt.getDate() + CODE_TTL_DAYS);
 
   for (let attempt = 0; attempt < 5; attempt++) {
-    const code = `SMIT-${randomCode()}`;
+    const code = `SMIT-${randomCode(6)}`;
     const ref = doc(db, 'inviteCodes', code);
     const existing = await getDoc(ref);
     if (existing.exists()) continue;
 
+    // Timestamp, not an ISO string: rules reject anything else, and cap expiry at 8 days.
     await setDoc(ref, {
       coachUid,
       coachName: coachName || '',
       usedBy: null,
-      expiresAt: expiresAt.toISOString(),
+      expiresAt: Timestamp.fromDate(expiresAt),
       createdAt: serverTimestamp(),
     });
     return { code, expiresAt };
@@ -202,6 +203,18 @@ export function deriveStatus({ profile = {}, workouts = [], weights = [] }) {
 /* ── Trainee side ───────────────────────────────────────────────────────── */
 
 /**
+ * Legacy codes stored an ISO string. Rules now require a Timestamp and treat
+ * those old codes as expired, so the client does too.
+ */
+function inviteStillValid(expiresAt) {
+  if (!expiresAt || typeof expiresAt === 'string') return false;
+  const millis = typeof expiresAt.toMillis === 'function'
+    ? expiresAt.toMillis()
+    : (typeof expiresAt.seconds === 'number' ? expiresAt.seconds * 1000 : null);
+  return millis != null && millis > Date.now();
+}
+
+/**
  * Look up a code without consuming it — the trainee sees who is asking and
  * what they'd get access to before deciding.
  */
@@ -214,33 +227,36 @@ export async function lookupInviteCode(rawCode) {
 
   const data = snap.data();
   if (data.usedBy) return { ok: false, reason: 'ALREADY_USED' };
-  if (data.expiresAt && new Date(data.expiresAt) < new Date()) {
-    return { ok: false, reason: 'EXPIRED' };
-  }
+  if (!inviteStillValid(data.expiresAt)) return { ok: false, reason: 'EXPIRED' };
   return { ok: true, code, coachUid: data.coachUid, coachName: data.coachName };
 }
 
-/** Accept the invite: create the link, stamp the trainee, burn the code. */
+/**
+ * Accept the invite in one batch. Rules check the code with getAfter(), so
+ * burning the code and creating the link have to commit together.
+ */
 export async function acceptInvite({ code, coachUid, traineeUid, traineeName, permissions }) {
   const perms = { ...DEFAULT_PERMISSIONS, ...(permissions || {}) };
+  const linkRef = doc(collection(db, 'coachLinks'));
+  const batch = writeBatch(db);
 
-  const linkRef = await addDoc(collection(db, 'coachLinks'), {
+  batch.update(doc(db, 'inviteCodes', code), { usedBy: traineeUid });
+  batch.set(linkRef, {
     coachUid,
     traineeUid,
     traineeName: traineeName || '',
     status: 'active',
     permissions: perms,
+    inviteCode: code,
     createdAt: serverTimestamp(),
     acceptedAt: serverTimestamp(),
   });
-
-  await updateDoc(doc(db, 'users', traineeUid), {
+  batch.update(doc(db, 'users', traineeUid), {
     coachUid,
     coachLinkId: linkRef.id,
   });
 
-  await updateDoc(doc(db, 'inviteCodes', code), { usedBy: traineeUid });
-
+  await batch.commit();
   return linkRef.id;
 }
 
@@ -257,7 +273,11 @@ export async function getMyCoach(traineeUid) {
   };
 }
 
-/** Either side can end it. The trainee keeps whatever the coach built. */
+/**
+ * Either side can end it. The link write is only `status` and `endedAt`
+ * (rules reject any other field, and an ended link cannot be re-activated).
+ * The trainee keeps whatever the coach built.
+ */
 export async function endCoachLink({ linkId, traineeUid }) {
   if (linkId) {
     await updateDoc(doc(db, 'coachLinks', linkId), {

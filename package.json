@@ -7,7 +7,8 @@
     "build": "expo export --platform web && node scripts/write-version.mjs",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-smit-gym \"node --test tests/\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -38,5 +39,10 @@
     "react-native-svg": "^15.8.0",
     "react-native-web": "^0.21.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase-admin": "^14.5.0",
+    "firebase-tools": "^15.33.0"
+  }
 }

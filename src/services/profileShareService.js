@@ -1,4 +1,5 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, Timestamp } from 'firebase/firestore';
+import * as Crypto from 'expo-crypto';
 import { Platform } from 'react-native';
 import { db } from '../config/firebase';
 import { calculateNutritionPlan } from './nutritionEngine';
@@ -185,8 +186,7 @@ function loadNutritionSnapshot(userProfile) {
 }
 
 function createShareId(role) {
-  const entropy = Math.random().toString(36).slice(2, 10);
-  return `${role}-${Date.now().toString(36)}-${entropy}`;
+  return `${role}-${Crypto.randomUUID()}`;
 }
 
 function buildWebShareUrl(baseUrl, shareId) {

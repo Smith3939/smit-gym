@@ -14,10 +14,11 @@ import Avatar from '../components/Avatar';
 import { FadeInView } from '../components/AnimatedCard';
 import {
   getFeedPosts, createPost, deletePost, toggleLike, getLikeInfo,
-  getAllPublicProfiles, upsertPublicProfile, sendBuddyRequest,
+  getAllPublicProfiles, upsertPublicProfile, scrubExactPublicLocation, sendBuddyRequest,
   getIncomingRequests, getMyBuddyLinks, respondToBuddyRequest,
   pickAndCompressImage, getCurrentLocation, distanceKm,
 } from '../services/socialService';
+import { decodeCenter, encode } from '../utils/geohash';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,14 @@ function timeAgo(timestamp) {
   if (diff < 3600) return `לפני ${Math.floor(diff / 60)} דק'`;
   if (diff < 86400) return `לפני ${Math.floor(diff / 3600)} שע'`;
   return `לפני ${Math.floor(diff / 86400)} ימים`;
+}
+
+/** Whole kilometres only — the stored cell is already ~5 km wide. */
+function formatDistance(km) {
+  if (km == null || Number.isNaN(km)) return null;
+  const rounded = Math.round(km);
+  if (rounded < 1) return 'פחות מק״מ';
+  return `~${rounded} ק״מ`;
 }
 
 // ─── Post card ──────────────────────────────────────────────────────────────
@@ -181,7 +190,7 @@ function PersonCard({ person, buddyState, distance, onOpenProfile, onRequestBudd
             <View style={styles.distanceBadge}>
               <MaterialIcons name="near-me" size={11} color={COLORS.secondary} />
               <Text style={styles.distanceText}>
-                {distance < 1 ? 'פחות מק"מ' : `${distance.toFixed(1)} ק"מ`} ממך
+                {formatDistance(distance)} ממך
               </Text>
             </View>
           )}
@@ -231,7 +240,9 @@ export default function CommunityScreen({ navigation }) {
 
   // People filter
   const [peopleFilter, setPeopleFilter] = useState('all'); // all | gym | city | near
+  // Exact fix stays in memory for this session only. What we store is geohash5.
   const [myLocation, setMyLocation] = useState(null);
+  const [myGeohash5, setMyGeohash5] = useState(null);
 
   const myName = userProfile?.name || user?.displayName || 'מתאמן';
   const myPhoto = userProfile?.photo || null;
@@ -245,8 +256,21 @@ export default function CommunityScreen({ navigation }) {
         getIncomingRequests(user.uid),
         getMyBuddyLinks(user.uid),
       ]);
+      const mine = peopleData.find((p) => p.uid === user.uid);
+      let myHash = mine?.geohash5 || null;
+      if (mine?.location) {
+        try {
+          myHash = await scrubExactPublicLocation(user.uid);
+        } catch (e) {
+          console.log('Public location scrub failed:', e);
+        }
+      }
+      if (myHash) setMyGeohash5(myHash);
+
       setPosts(feedData);
-      setPeople(peopleData.filter((p) => p.uid !== user.uid));
+      setPeople(peopleData
+        .filter((p) => p.uid !== user.uid)
+        .map(({ location, ...person }) => person));
       setRequests(reqData);
       setBuddyLinks(linksData);
     } catch (e) {
@@ -322,7 +346,9 @@ export default function CommunityScreen({ navigation }) {
         return;
       }
       setMyLocation(loc);
-      await upsertPublicProfile(user.uid, { location: loc });
+      const geohash5 = encode(loc.lat, loc.lng, 5);
+      setMyGeohash5(geohash5);
+      await upsertPublicProfile(user.uid, { geohash5 });
       setPeopleFilter('near');
       toast.success('המיקום שותף - מציג מתאמנים קרובים');
     } catch (e) {
@@ -373,9 +399,12 @@ export default function CommunityScreen({ navigation }) {
   const openProfile = (uid) => navigation.navigate('PublicProfile', { uid });
 
   // People filtering
-  const effectiveLocation = myLocation || userProfile?.location || null;
+  const effectiveLocation = myLocation || decodeCenter(myGeohash5);
   const filteredPeople = people
-    .map((p) => ({ ...p, distance: distanceKm(effectiveLocation, p.location) }))
+    .map((p) => ({
+      ...p,
+      distance: distanceKm(effectiveLocation, decodeCenter(p.geohash5)),
+    }))
     .filter((p) => {
       if (peopleFilter === 'gym') {
         return userProfile?.gymName && p.gymName &&
