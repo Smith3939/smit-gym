@@ -233,7 +233,7 @@ export default function CoachSection({ navigation, profile }) {
                   style={styles.codeInput}
                   value={code}
                   onChangeText={(t) => setCode(t.toUpperCase())}
-                  placeholder="SMIT-XXXX"
+                  placeholder="SMIT-XXXXXX"
                   placeholderTextColor={COLORS.textDim}
                   autoCapitalize="characters"
                   autoCorrect={false}
