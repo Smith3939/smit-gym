@@ -8,7 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-smit-gym \"node --test tests/\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-smit-gym \"node --test tests/*.test.mjs\""
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
