@@ -2,9 +2,9 @@ rules_version = '2';
 
 // Smit Gym - Firestore Security Rules (private data + social network)
 //
-// DEPLOY THESE before any real user signs up:
+// DEPLOY THESE before any real user signs up, and again after this file changes:
 //   Firebase Console > Firestore Database > Rules tab > paste > Publish
-//   (or: firebase deploy --only firestore:rules)
+//   (or: firebase deploy --only firestore:rules --project smith-gymai)
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,13 +13,25 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // The trainee's own doc records who coaches them. That single field is the
-    // whole authorisation story for the coach module — a coach is only ever
-    // "my coach" because the trainee accepted an invite, which is the only
-    // thing that writes it.
+    // A coach may read a trainee only while the trainee doc still points at
+    // that coach AND the linked coachLinks doc is active and really theirs.
+    // Ending the link (or clearing it) drops access even if coachUid is stale.
     function isCoachOf(userId) {
-      return signedIn() &&
-        get(/databases/$(database)/documents/users/$(userId)).data.coachUid == request.auth.uid;
+      let userDoc = get(/databases/$(database)/documents/users/$(userId));
+      let linkDoc = get(/databases/$(database)/documents/coachLinks/$(userDoc.data.coachLinkId));
+      return signedIn()
+        && userDoc.data.coachUid == request.auth.uid
+        && linkDoc.data.traineeUid == userId
+        && linkDoc.data.coachUid == request.auth.uid
+        && linkDoc.data.status == 'active';
+    }
+
+    // The invite named on a new link must already show this trainee as the
+    // redeemer after the same batch (getAfter), and must belong to that coach.
+    function redeemedInviteMatches(inviteCode, coachUid) {
+      let code = getAfter(/databases/$(database)/documents/inviteCodes/$(inviteCode));
+      return code.data.usedBy == request.auth.uid
+        && code.data.coachUid == coachUid;
     }
 
     // ── Private data: the owner writes; their coach may read ─────────────
@@ -59,38 +71,90 @@ service cloud.firestore {
     match /coachLinks/{linkId} {
       allow read: if signedIn() &&
         (resource.data.coachUid == request.auth.uid || resource.data.traineeUid == request.auth.uid);
-      // Only the trainee creates the link — that IS the act of consenting.
-      allow create: if signedIn() && request.resource.data.traineeUid == request.auth.uid;
-      // Either side can end it.
-      allow update: if signedIn() &&
-        (resource.data.coachUid == request.auth.uid || resource.data.traineeUid == request.auth.uid);
+
+      // Only the trainee creates the link, and only by redeeming a real code
+      // for that coach in the same batch.
+      allow create: if signedIn()
+        && request.resource.data.traineeUid == request.auth.uid
+        && request.resource.data.coachUid is string
+        && request.resource.data.coachUid != request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.inviteCode is string
+        && request.resource.data.inviteCode.size() > 0
+        && redeemedInviteMatches(request.resource.data.inviteCode, request.resource.data.coachUid);
+
+      // Either party may end an active link (status + endedAt only).
+      // The trainee may also edit permissions. Nothing else, and no re-activate.
+      allow update: if signedIn() && (
+        (
+          (resource.data.coachUid == request.auth.uid || resource.data.traineeUid == request.auth.uid)
+          && resource.data.status == 'active'
+          && request.resource.data.status == 'ended'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'endedAt'])
+        )
+        ||
+        (
+          resource.data.traineeUid == request.auth.uid
+          && resource.data.status == 'active'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['permissions'])
+        )
+      );
     }
 
     // ── Invite codes ─────────────────────────────────────────────────────
-    // Readable by any signed-in user (you must be able to look up a code you
-    // were given), but the document only ever exposes the coach's name.
+    // Lookup is by exact id (the code you were handed). Listing every code
+    // is denied; a coach may list only their own.
     match /inviteCodes/{code} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.coachUid == request.auth.uid;
-      // Redeeming = stamping usedBy with your own uid, once.
-      allow update: if signedIn() &&
-        resource.data.usedBy == null &&
-        request.resource.data.usedBy == request.auth.uid;
+      allow get: if signedIn();
+      allow list: if signedIn() && resource.data.coachUid == request.auth.uid;
+
+      allow create: if signedIn()
+        && request.resource.data.coachUid == request.auth.uid
+        && request.resource.data.usedBy == null
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(8, 'd');
+
+      // Redeem once, before expiry, stamping usedBy with your own uid.
+      allow update: if signedIn()
+        && resource.data.usedBy == null
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time
+        && request.resource.data.usedBy == request.auth.uid
+        && request.auth.uid != resource.data.coachUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedBy']);
+
       allow delete: if signedIn() && resource.data.coachUid == request.auth.uid;
     }
 
     // Share documents contain a limited snapshot selected by the owner.
-    // The random document id acts as the share token; expired or disabled links are closed.
+    // The random document id acts as the share token. Anyone with the link
+    // may get one active, unexpired doc. Listing the collection is not public.
     match /sharedProfiles/{shareId} {
-      allow read: if resource.data.status == 'active' && resource.data.expiresAt > request.time;
-      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      allow get: if resource.data.status == 'active' && resource.data.expiresAt > request.time;
+      allow list: if request.auth != null && resource.data.ownerId == request.auth.uid;
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp;
+
       allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
 
-    // ── Public profiles: any signed-in user may read, only owner writes ──
+    // ── Public profiles: signed-in read, owner write, no exact GPS ───────
+    // `geohash5` is a coarse cell (~5 km). `location` (exact lat/lng) is rejected.
+    // Delete is separate: request.resource does not exist on delete.
     match /publicProfiles/{userId} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == userId;
+
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && !('location' in request.resource.data)
+        && request.resource.data.get('geohash5', '') is string
+        && request.resource.data.get('geohash5', '').size() <= 5;
+
+      allow delete: if signedIn() && request.auth.uid == userId;
     }
 
     // ── Feed posts: read by all signed-in, create/delete by author only ──

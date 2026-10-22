@@ -2,7 +2,7 @@
  * Social Service - the fitness social network layer.
  *
  * Data model (Firestore):
- * - publicProfiles/{uid}  - what other users may see (name, photo, gym, city, location)
+ * - publicProfiles/{uid}  - what other users may see (name, photo, gym, city, geohash5)
  * - posts/{postId}        - feed posts (text / shared workout / shared meal, optional image)
  * - posts/{postId}/likes/{uid} - one doc per liking user
  * - buddyRequests/{id}    - workout-buddy requests between users
@@ -13,12 +13,13 @@
 
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, updateDoc,
-  query, where, orderBy, limit, serverTimestamp, getCountFromServer,
+  query, where, orderBy, limit, serverTimestamp, getCountFromServer, deleteField,
 } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { db } from '../config/firebase';
+import { encode } from '../utils/geohash';
 
 // ─── Public profiles ────────────────────────────────────────────────────────
 
@@ -27,10 +28,42 @@ import { db } from '../config/firebase';
  * Call whenever the private profile changes (name, gym, city, photo...).
  */
 export async function upsertPublicProfile(uid, data) {
+  // Never persist exact coordinates. deleteField also clears a legacy `location`
+  // so the write still passes the rules on docs that already have one.
+  const rest = { ...(data || {}) };
+  delete rest.location;
   await setDoc(doc(db, 'publicProfiles', uid), {
-    ...data,
+    ...rest,
+    location: deleteField(),
     updatedAt: serverTimestamp(),
   }, { merge: true });
+}
+
+function readLatLng(location) {
+  if (!location || typeof location !== 'object') return null;
+  const lat = typeof location.lat === 'number' ? location.lat : null;
+  const lng = typeof location.lng === 'number' ? location.lng : null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+/**
+ * If this user's public profile still has an exact GPS fix, replace it with
+ * geohash5 and delete `location` in one owner write. Returns the coarse hash
+ * when one is stored (or was just written).
+ */
+export async function scrubExactPublicLocation(uid) {
+  if (!uid) return null;
+  const snap = await getDoc(doc(db, 'publicProfiles', uid));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  if (data.location == null) return data.geohash5 || null;
+
+  const coords = readLatLng(data.location);
+  const patch = {};
+  if (coords) patch.geohash5 = encode(coords.lat, coords.lng, 5);
+  await upsertPublicProfile(uid, patch);
+  return patch.geohash5 || data.geohash5 || null;
 }
 
 export async function getPublicProfile(uid) {
