@@ -195,7 +195,9 @@ describe('firestore security rules', { concurrency: false }, () => {
       traineeName: 'מתאמן',
       status: 'active',
       inviteCode: 'SMIT-VALID1',
-      permissions: { workouts: true, nutrition: true },
+      // The profile stores weight and calories, so both of those shares
+      // have to be on before the coach may read the trainee document.
+      permissions: { workouts: true, nutrition: true, metrics: true, notes: false },
     });
     batch.update(doc(trainee, 'users/trainee'), {
       coachUid: 'coach',
@@ -234,7 +236,7 @@ describe('firestore security rules', { concurrency: false }, () => {
       traineeUid: 'trainee',
       status: 'active',
       inviteCode: 'SMIT-OLDONE',
-      permissions: { workouts: true },
+      permissions: { workouts: true, nutrition: true, metrics: true, notes: true },
     });
 
     const coach = dbFor('coach');
@@ -272,6 +274,152 @@ describe('firestore security rules', { concurrency: false }, () => {
     });
 
     await assertDenied(getDoc(doc(dbFor('coach'), 'users/trainee')));
+  });
+
+  test('a coach only reads the data types the trainee agreed to share', async () => {
+    await seed('users/trainee', {
+      name: 'מתאמן',
+      email: 'trainee@example.com',
+      weight: 82,
+      dailyCalories: 2100,
+      coachUid: 'coach',
+      coachLinkId: 'link-perms',
+    });
+    await seed('coachLinks/link-perms', {
+      coachUid: 'coach',
+      traineeUid: 'trainee',
+      status: 'active',
+      inviteCode: 'SMIT-PERMS1',
+      permissions: {
+        workouts: true,
+        nutrition: false,
+        metrics: false,
+        notes: false,
+      },
+    });
+    await seed('users/trainee/workoutLogs/w1', { note: 'סיום אימון' });
+    await seed('users/trainee/workoutDrafts/day-a', { setLogs: { bench: { 1: { weight: '40' } } } });
+    await seed('users/trainee/workout/currentProgram', { name: 'תוכנית' });
+    await seed('users/trainee/workout/logs/sessions/s1', { sessionName: 'א' });
+    await seed('users/trainee/weightHistory/wh1', { weight: 82 });
+    await seed('users/trainee/waterLog/2026-10-22', { glasses: 6 });
+    await seed('users/trainee/nutrition/currentPlan', { title: 'תפריט סודי' });
+    await seed('users/trainee/nutrition/swapHistory/swaps/swap1', { from: 'אורז' });
+    await seed('users/trainee/coachNotes/n1', { text: 'הערה ישנה' });
+    await seed('users/trainee/coachPlans/plan-workout', { type: 'workout', payload: {} });
+    await seed('users/trainee/coachPlans/plan-meal', { type: 'meal', payload: {} });
+
+    const coach = dbFor('coach');
+    const trainee = dbFor('trainee');
+    const stranger = dbFor('stranger');
+
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/workoutLogs/w1')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/workoutDrafts/day-a')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/workout/currentProgram')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/workout/logs/sessions/s1')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/coachPlans/plan-workout')));
+    await assertSucceeds(setDoc(doc(coach, 'users/trainee/coachPlans/plan-new'), {
+      type: 'workout',
+      payload: { days: 3 },
+    }));
+
+    await assertDenied(getDoc(doc(coach, 'users/trainee')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/weightHistory/wh1')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/waterLog/2026-10-22')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/nutrition/currentPlan')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/nutrition/swapHistory/swaps/swap1')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/coachNotes/n1')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/coachPlans/plan-meal')));
+    await assertDenied(setDoc(doc(coach, 'users/trainee/coachNotes/n2'), { text: 'לא אושר' }));
+    await assertDenied(setDoc(doc(coach, 'users/trainee/coachPlans/plan-secret-meal'), {
+      type: 'meal',
+      payload: {},
+    }));
+    await assertDenied(updateDoc(doc(coach, 'users/trainee/coachPlans/plan-workout'), {
+      type: 'meal',
+      payload: {},
+    }));
+    await assertDenied(setDoc(doc(coach, 'users/trainee/weightHistory/wh2'), { weight: 70 }));
+
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/weightHistory/wh1')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/waterLog/2026-10-22')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/nutrition/currentPlan')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/nutrition/swapHistory/swaps/swap1')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/coachNotes/n1')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/coachPlans/plan-meal')));
+    await assertSucceeds(setDoc(doc(trainee, 'users/trainee/weightHistory/wh-owner'), { weight: 81 }));
+
+    await assertDenied(getDoc(doc(stranger, 'users/trainee/workoutLogs/w1')));
+    await assertDenied(getDoc(doc(stranger, 'users/trainee')));
+  });
+
+  test('turning a share off removes that access, and metrics does not reveal nutrition', async () => {
+    await seed('users/trainee', {
+      name: 'מתאמן',
+      weight: 80,
+      dailyCalories: 2000,
+      coachUid: 'coach',
+      coachLinkId: 'link-toggle',
+    });
+    await seed('coachLinks/link-toggle', {
+      coachUid: 'coach',
+      traineeUid: 'trainee',
+      status: 'active',
+      inviteCode: 'SMIT-TOGGLE',
+      permissions: { workouts: false, nutrition: true, metrics: true, notes: true },
+    });
+    await seed('users/trainee/weightHistory/wh1', { weight: 80 });
+    await seed('users/trainee/nutrition/currentPlan', { title: 'תפריט' });
+    await seed('users/trainee/workoutLogs/w1', { note: 'אימון' });
+    await seed('users/trainee/coachNotes/n1', { text: 'כל הכבוד' });
+
+    const coach = dbFor('coach');
+    const trainee = dbFor('trainee');
+
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/weightHistory/wh1')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/nutrition/currentPlan')));
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/coachNotes/n1')));
+    await assertSucceeds(setDoc(doc(coach, 'users/trainee/coachNotes/n2'), { text: 'המשך' }));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/workoutLogs/w1')));
+
+    await assertSucceeds(updateDoc(doc(trainee, 'coachLinks/link-toggle'), {
+      permissions: { workouts: false, nutrition: false, metrics: true, notes: false },
+    }));
+
+    await assertSucceeds(getDoc(doc(coach, 'users/trainee/weightHistory/wh1')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/nutrition/currentPlan')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/coachNotes/n1')));
+    await assertDenied(updateDoc(doc(coach, 'users/trainee/coachNotes/n2'), { text: 'אחרי הסירוב' }));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee/nutrition/currentPlan')));
+    await assertSucceeds(getDoc(doc(trainee, 'users/trainee')));
+  });
+
+  test('a link with no permissions map does not grant trainee data', async () => {
+    await seed('users/trainee', {
+      name: 'מתאמן',
+      weight: 77,
+      coachUid: 'coach',
+      coachLinkId: 'link-empty',
+    });
+    await seed('coachLinks/link-empty', {
+      coachUid: 'coach',
+      traineeUid: 'trainee',
+      status: 'active',
+      inviteCode: 'SMIT-EMPTY1',
+    });
+    await seed('users/trainee/workoutLogs/w1', { note: 'אימון' });
+    await seed('users/trainee/weightHistory/wh1', { weight: 77 });
+    await seed('users/trainee/nutrition/currentPlan', { title: 'תפריט' });
+
+    const coach = dbFor('coach');
+    await assertDenied(getDoc(doc(coach, 'users/trainee')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/workoutLogs/w1')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/weightHistory/wh1')));
+    await assertDenied(getDoc(doc(coach, 'users/trainee/nutrition/currentPlan')));
+    await assertSucceeds(getDoc(doc(dbFor('trainee'), 'users/trainee/nutrition/currentPlan')));
   });
 
   test('shared profiles: anonymous get works, listing and expired links do not', async () => {

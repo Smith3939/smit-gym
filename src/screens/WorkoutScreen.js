@@ -214,6 +214,7 @@ export default function WorkoutScreen() {
   const [saving, setSaving] = useState(false);
   const [setLogs, setSetLogs] = useState({});
   const [draftLoadedKey, setDraftLoadedKey] = useState(null);
+  const [draftLoadAttempt, setDraftLoadAttempt] = useState(0);
   const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
   const [swapModal, setSwapModal] = useState({
     visible: false,
@@ -257,13 +258,13 @@ export default function WorkoutScreen() {
       .catch((error) => {
         console.warn('Workout draft load failed:', error);
         if (cancelled) return;
-        setSetLogs({});
-        setDraftLoadedKey(activeDay);
-        setAutoSaveStatus('error');
+        // Leave the saved draft untouched. Autosave stays off until a load
+        // succeeds, so an empty screen cannot overwrite it.
+        setAutoSaveStatus('load-error');
       });
 
     return () => { cancelled = true; };
-  }, [user?.uid, activeDay]);
+  }, [user?.uid, activeDay, draftLoadAttempt]);
 
   // Persist every edit after a short debounce, so typing a number does not
   // create a Firestore write for every individual keypress.
@@ -634,15 +635,32 @@ export default function WorkoutScreen() {
         />
       ))}
 
-        <Text style={[styles.autoSaveStatus, autoSaveStatus === 'error' && styles.autoSaveError]}>
+        <Text style={[
+          styles.autoSaveStatus,
+          (autoSaveStatus === 'error' || autoSaveStatus === 'load-error') && styles.autoSaveError,
+        ]}>
           {autoSaveStatus === 'loading' && 'טוען נתונים שמורים...'}
           {autoSaveStatus === 'saving' && 'שומר אוטומטית...'}
           {autoSaveStatus === 'saved' && '✓ נשמר אוטומטית'}
           {autoSaveStatus === 'error' && 'השמירה נכשלה — ננסה שוב בשינוי הבא'}
+          {autoSaveStatus === 'load-error' && 'לא הצלחנו לטעון את האימון השמור. השמירה האוטומטית כבויה כדי לא למחוק אותו.'}
         </Text>
+        {autoSaveStatus === 'load-error' && (
+          <TouchableOpacity
+            style={styles.retryLoadButton}
+            onPress={() => setDraftLoadAttempt((attempt) => attempt + 1)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryLoadText}>נסה שוב</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Optional completion marker; the set values are already auto-saved. */}
-        <TouchableOpacity activeOpacity={0.85} onPress={handleFinishWorkout} disabled={saving}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={handleFinishWorkout}
+          disabled={saving || autoSaveStatus === 'load-error'}
+        >
           <LinearGradient
             colors={GRADIENTS.primary}
             start={{ x: 0, y: 0 }}
@@ -665,6 +683,7 @@ export default function WorkoutScreen() {
           activeOpacity={0.85}
           onPress={handleShareWorkout}
           style={styles.shareButton}
+          disabled={autoSaveStatus === 'load-error'}
         >
           <MaterialIcons name="share" size={20} color={COLORS.primary} />
           <Text style={styles.shareButtonText}>שתף את האימון לקהילה</Text>
@@ -1021,6 +1040,22 @@ const styles = StyleSheet.create({
   },
   autoSaveError: {
     color: COLORS.warning,
+    marginHorizontal: SPACING.lg,
+    lineHeight: 18,
+  },
+  retryLoadButton: {
+    alignSelf: 'center',
+    marginTop: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.warning,
+  },
+  retryLoadText: {
+    color: COLORS.warning,
+    fontSize: FONTS.small,
+    fontWeight: '700',
   },
 
   // Finish Button

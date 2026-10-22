@@ -151,7 +151,9 @@ export default function TraineeDetailScreen({ navigation, route }) {
           <SectionTitle>אימונים אחרונים</SectionTitle>
           {(data?.workouts || []).length === 0 ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.emptyText}>עוד לא נרשמו אימונים</Text>
+              <Text style={styles.emptyText}>
+                {data?.workoutsShared === false ? 'המתאמן לא שיתף אימונים' : 'עוד לא נרשמו אימונים'}
+              </Text>
             </View>
           ) : (
             data.workouts.slice(0, 8).map((w) => (

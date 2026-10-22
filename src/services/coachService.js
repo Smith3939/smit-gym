@@ -7,6 +7,8 @@
  *    become active and `users/{traineeUid}.coachUid` get set.
  *  - Rules allow the coach to read the trainee only while `coachUid` matches
  *    and `coachLinkId` points at an active coachLinks doc for that pair.
+ *    Each collection also requires the matching `permissions` flag. A refusal
+ *    is enforced in the rules, not only in the screen.
  *  - Either side can end the link at any time.
  *
  * Phase 1 is read-only for the coach (dashboard + progress). Plan editing
@@ -110,30 +112,46 @@ export async function getMyTrainees(coachUid) {
  * Everything the dashboard needs for one trainee: profile, last workout,
  * weight trend, and the derived attention flags.
  */
+async function readIfShared(promise) {
+  try {
+    return { shared: true, value: await promise };
+  } catch {
+    return { shared: false, value: null };
+  }
+}
+
 export async function getTraineeSummary(traineeUid) {
-  const [profileSnap, workoutSnap, weightSnap] = await Promise.all([
-    getDoc(doc(db, 'users', traineeUid)),
-    getDocs(query(
+  const [profileRead, workoutRead, weightRead] = await Promise.all([
+    readIfShared(getDoc(doc(db, 'users', traineeUid))),
+    readIfShared(getDocs(query(
       collection(db, 'users', traineeUid, 'workoutLogs'),
       orderBy('createdAt', 'desc'),
       limit(20),
-    )).catch(() => ({ docs: [] })),
-    getDocs(query(
+    ))),
+    readIfShared(getDocs(query(
       collection(db, 'users', traineeUid, 'weightHistory'),
       orderBy('createdAt', 'desc'),
       limit(10),
-    )).catch(() => ({ docs: [] })),
+    ))),
   ]);
 
-  const profile = profileSnap.exists() ? profileSnap.data() : {};
-  const workouts = workoutSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-  const weights = weightSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const profile = profileRead.shared && profileRead.value.exists() ? profileRead.value.data() : {};
+  // null means the trainee did not share this category. An empty array means
+  // they shared it and there is nothing logged yet.
+  const workouts = workoutRead.shared
+    ? workoutRead.value.docs.map((d) => ({ id: d.id, ...d.data() }))
+    : null;
+  const weights = weightRead.shared
+    ? weightRead.value.docs.map((d) => ({ id: d.id, ...d.data() }))
+    : null;
 
   return {
     uid: traineeUid,
     profile,
-    workouts,
-    weights,
+    workouts: workouts || [],
+    weights: weights || [],
+    workoutsShared: workoutRead.shared,
+    weightsShared: weightRead.shared,
     ...deriveStatus({ profile, workouts, weights }),
   };
 }
@@ -154,41 +172,52 @@ const daysSince = (date) =>
  */
 export function deriveStatus({ profile = {}, workouts = [], weights = [] }) {
   const flags = [];
+  const workoutsKnown = Array.isArray(workouts);
+  const weightsKnown = Array.isArray(weights);
+  const workoutList = workoutsKnown ? workouts : [];
+  const weightList = weightsKnown ? weights : [];
 
-  const lastWorkoutAt = toDate(workouts[0]?.createdAt);
-  const daysSinceWorkout = daysSince(lastWorkoutAt);
-  if (daysSinceWorkout === null) {
-    flags.push({ level: 'warn', text: 'עדיין לא רשם אימון' });
-  } else if (daysSinceWorkout >= 5) {
-    flags.push({ level: 'alert', text: `לא התאמן ${daysSinceWorkout} ימים` });
+  let daysSinceWorkout = null;
+  if (workoutsKnown) {
+    const lastWorkoutAt = toDate(workoutList[0]?.createdAt);
+    daysSinceWorkout = daysSince(lastWorkoutAt);
+    if (daysSinceWorkout === null) {
+      flags.push({ level: 'warn', text: 'עדיין לא רשם אימון' });
+    } else if (daysSinceWorkout >= 5) {
+      flags.push({ level: 'alert', text: `לא התאמן ${daysSinceWorkout} ימים` });
+    }
   }
 
-  const lastWeighAt = toDate(weights[0]?.createdAt);
-  const daysSinceWeigh = daysSince(lastWeighAt);
-  if (daysSinceWeigh !== null && daysSinceWeigh >= 14) {
-    flags.push({ level: 'warn', text: `לא נשקל ${daysSinceWeigh} ימים` });
-  }
-
-  // Weight moving against the stated goal
   let weightDelta = null;
-  if (weights.length >= 2) {
-    const newest = Number(weights[0].weight);
-    const oldest = Number(weights[weights.length - 1].weight);
-    if (Number.isFinite(newest) && Number.isFinite(oldest)) {
-      weightDelta = Math.round((newest - oldest) * 10) / 10;
-      const goal = profile.goal;
-      if (goal === 'cut' && weightDelta >= 1) {
-        flags.push({ level: 'alert', text: `עלה ${weightDelta} ק״ג במטרת חיטוב` });
-      } else if (goal === 'bulk' && weightDelta <= -1) {
-        flags.push({ level: 'alert', text: `ירד ${Math.abs(weightDelta)} ק״ג במטרת מסה` });
+  if (weightsKnown) {
+    const lastWeighAt = toDate(weightList[0]?.createdAt);
+    const daysSinceWeigh = daysSince(lastWeighAt);
+    if (daysSinceWeigh !== null && daysSinceWeigh >= 14) {
+      flags.push({ level: 'warn', text: `לא נשקל ${daysSinceWeigh} ימים` });
+    }
+
+    // Weight moving against the stated goal
+    if (weightList.length >= 2) {
+      const newest = Number(weightList[0].weight);
+      const oldest = Number(weightList[weightList.length - 1].weight);
+      if (Number.isFinite(newest) && Number.isFinite(oldest)) {
+        weightDelta = Math.round((newest - oldest) * 10) / 10;
+        const goal = profile.goal;
+        if (goal === 'cut' && weightDelta >= 1) {
+          flags.push({ level: 'alert', text: `עלה ${weightDelta} ק״ג במטרת חיטוב` });
+        } else if (goal === 'bulk' && weightDelta <= -1) {
+          flags.push({ level: 'alert', text: `ירד ${Math.abs(weightDelta)} ק״ג במטרת מסה` });
+        }
       }
     }
   }
 
-  const workoutsThisWeek = workouts.filter((w) => {
-    const d = toDate(w.createdAt);
-    return d && Date.now() - d.getTime() <= 7 * 86400000;
-  }).length;
+  const workoutsThisWeek = workoutsKnown
+    ? workoutList.filter((w) => {
+      const d = toDate(w.createdAt);
+      return d && Date.now() - d.getTime() <= 7 * 86400000;
+    }).length
+    : null;
 
   return {
     flags,
@@ -196,7 +225,7 @@ export function deriveStatus({ profile = {}, workouts = [], weights = [] }) {
     daysSinceWorkout,
     workoutsThisWeek,
     weightDelta,
-    currentWeight: weights[0]?.weight ?? profile.weight ?? null,
+    currentWeight: weightsKnown ? (weightList[0]?.weight ?? profile.weight ?? null) : null,
   };
 }
 

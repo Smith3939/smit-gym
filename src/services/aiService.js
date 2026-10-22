@@ -1,4 +1,9 @@
-import { callClaude } from './claudeClient';
+import { callClaude, markAiLive, markAiNotLive } from './claudeClient';
+import {
+  hebrewAiFailureMessage,
+  isAiBackendDisabled,
+  selectRecentChatMessages,
+} from '../../api/aiLimits';
 
 const SYSTEM_PROMPT = `אתה מאמן כושר ותזונה מקצועי בשם "מאמן Smit". אתה מדבר בעברית.
 
@@ -60,28 +65,30 @@ export async function sendMessageToAI(messages, userProfile = null) {
     }
   }
 
-  const apiMessages = messages
-    .filter((m) => m.role !== 'system')
-    .map((m) => ({
-      role: m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content,
-    }));
+  const apiMessages = selectRecentChatMessages(messages);
 
   try {
-    return await callClaude({ system: systemPrompt, messages: apiMessages, maxTokens: 1024 });
+    const text = await callClaude({ system: systemPrompt, messages: apiMessages, maxTokens: 1024 });
+    markAiLive();
+    return text;
   } catch (error) {
-    if (error.code !== 'NO_API_KEY') {
-      console.error('AI Service Error:', error);
+    if (isAiBackendDisabled(error)) {
+      return generateFallbackResponse(messages[messages.length - 1]?.content || '');
     }
-    return generateFallbackResponse(messages[messages.length - 1]?.content || '');
+    console.error('AI Service Error:', error);
+    markAiNotLive();
+    const failure = new Error(hebrewAiFailureMessage(error));
+    failure.code = 'AI_REQUEST_FAILED';
+    failure.status = error?.status;
+    throw failure;
   }
 }
 
 /**
- * Is the real AI connected? Used by the UI to show/hide the "live" badge
- * so we never misrepresent the fallback as live AI.
+ * Is the real AI connected right now? A server or quota failure turns this
+ * off until a later request succeeds. The local fallback is not "live".
  */
-export { hasValidClaudeKey as isAIConnected } from './claudeClient';
+export { isAIConnected, subscribeAiConnection } from './claudeClient';
 
 function generateFallbackResponse(question) {
   const q = question.toLowerCase();
