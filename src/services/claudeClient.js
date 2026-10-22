@@ -1,8 +1,9 @@
 /**
  * Shared AI client.
  *
- * The Anthropic key lives only in Vercel. The app sends the current Firebase
- * ID token to Vercel's API route, which verifies the user before calling Claude.
+ * The OpenAI key lives only in Vercel (OPENAI_API_KEY). The app sends the
+ * current Firebase ID token to /api/claude — the path name is unchanged so
+ * existing clients keep working — and that route calls OpenAI.
  */
 import { Platform } from 'react-native';
 import { auth } from '../config/firebase';
@@ -75,7 +76,7 @@ export async function callClaude({ system, messages, maxTokens = 1024 }) {
 }
 
 /**
- * Parse a JSON object out of a Claude text response that may be wrapped in
+ * Parse a JSON object out of a model text response that may be wrapped in
  * markdown code fences.
  */
 export function parseClaudeJson(text) {
