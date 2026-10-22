@@ -23,7 +23,7 @@
 | Framework | React Native `0.81.5` + Expo `~54` |
 | ניווט | React Navigation 7 (Bottom Tabs + Stack) |
 | Auth + Database | Firebase (Authentication + Cloud Firestore) — פרויקט `smith-gymai` |
-| AI | Claude API (Anthropic) עם מנגנון fallback מקומי |
+| AI | OpenAI Chat Completions (`gpt-5-mini`) עם מנגנון fallback מקומי |
 | גרפיקה | react-native-svg, expo-linear-gradient, Animated API |
 | מדיה/מיקום | expo-image-picker, expo-image-manipulator, expo-location |
 | State | React Context (`AuthContext`) |
@@ -101,7 +101,7 @@ smit-gym/
 | `aiService.js` | צ'אט AI (system prompt עברי) |
 | `aiNutritionService.js` | החלפת מזון חכמה (AI) |
 | `aiWorkoutService.js` | החלפת/גיוון תרגילים (AI) |
-| `claudeClient.js` | נקודת קריאה מרכזית ל-Claude: אימות מפתח, timeout, fallback |
+| `claudeClient.js` | נקודת קריאה מרכזית ל-AI (OpenAI דרך `/api/claude`): timeout, fallback |
 | `socialService.js` | רשת חברתית: פרופילים ציבוריים, פוסטים, לייקים, בקשות אימון, תמונות (base64), מיקום |
 | `profileShareService.js` | יצירת קישור שיתוף פרופיל למאמן/חבר |
 | `notificationService.js` | תזכורות (שקילה/מים/אימון/ארוחות) |
@@ -128,11 +128,11 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 
 ## 8. מערכת ה-AI
 
-- **מפתח:** נשמר כמשתנה סודי ב-Vercel בשם `ANTHROPIC_API_KEY`, ונגיש רק לנתיב השרת `api/claude.js`. הוא לעולם לא נכנס ל-GitHub או ל-Web bundle.
-- **מודל:** `claude-sonnet-4-6` (ניתן לשינוי דרך `ANTHROPIC_MODEL`), timeout 25 שניות.
-- **3 שימושים:** צ'אט (`aiService`), החלפת מזון (`aiNutritionService`), החלפת/גיוון תרגילים (`aiWorkoutService`) — כולם עוברים דרך `claudeClient.js`.
-- **Fallback:** אם אין מפתח תקין (`sk-ant-...`) או שהקריאה נכשלת — המערכת נופלת אוטומטית למאגר המקומי. הצ'אט מציג תווית **"בסיסי"** במקום **"חי"** כדי לא להטעות.
-- **אבטחה:** הלקוח שולח Firebase ID token ל-`/api/claude`. נתיב ה-Vercel מאמת את החתימה מול Firebase, מתיר שימוש רק למיילים שב-`AI_ALLOWED_EMAILS`, מגביל בקשות בסיסית, ופונה ל-Claude עם המפתח הסודי. Firebase Blaze אינו נדרש.
+- **מפתח:** נשמר כמשתנה סודי ב-Vercel בשם `OPENAI_API_KEY`, ונגיש רק לנתיב השרת `api/claude.js`. הוא לעולם לא נכנס ל-GitHub או ל-Web bundle.
+- **מודל:** `gpt-5-mini` (ניתן לשינוי דרך `OPENAI_MODEL`), timeout 25 שניות. זה מודל נוכחי וזול של OpenAI, מתאים לצ'אט קצר בעברית ולתשובות JSON. השרת קורא ל-Chat Completions ומבקש `reasoning_effort: minimal` במודל ברירת המחדל, כדי שחשיבה נסתרת לא תאכל את כל מכסת הטוקנים.
+- **3 שימושים:** צ'אט (`aiService`), החלפת מזון (`aiNutritionService`), החלפת/גיוון תרגילים (`aiWorkoutService`) — כולם עוברים דרך `claudeClient.js`. כתובת הנתיב נשארה `/api/claude` כדי לא לשבור לקוחות קיימים.
+- **Fallback:** אם השרת לא מופעל (`EXPO_PUBLIC_AI_BACKEND_ENABLED` אינו `true`), או שהקריאה נכשלת — המערכת נופלת אוטומטית למאגר המקומי. הצ'אט מציג תווית **"בסיסי"** במקום **"חי"** כדי לא להטעות.
+- **אבטחה:** הלקוח שולח Firebase ID token ל-`/api/claude`. נתיב ה-Vercel מאמת את החתימה מול Firebase, מתיר שימוש רק למיילים שב-`AI_ALLOWED_EMAILS`, מגביל בקשות בסיסית, ופונה ל-OpenAI עם המפתח הסודי. Firebase Blaze אינו נדרש. בלי מפתח השרת מחזיר 503.
 
 ---
 
@@ -165,7 +165,7 @@ sharedProfiles/{shareId}        # snapshot פרופיל לשיתוף דרך קי
 
 **חוסמים / דרוש פעולת בעלים:**
 1. **לפרוס `firestore.rules`** ב-Firebase Console (Firestore → Rules → Publish) — אחרת הקהילה והפרופיל הציבורי חסומים.
-2. **הפעלת AI חי** — להגדיר ב-Vercel את `ANTHROPIC_API_KEY`, `AI_ALLOWED_EMAILS` ו-`EXPO_PUBLIC_AI_BACKEND_ENABLED=true`, ואז לבצע פריסה חדשה. הוראות מלאות ב-`VERCEL_SETUP.md`.
+2. **הפעלת AI חי** — להגדיר ב-Vercel את `OPENAI_API_KEY`, `AI_ALLOWED_EMAILS` ו-`EXPO_PUBLIC_AI_BACKEND_ENABLED=true` (יעד Production), ואז לבצע פריסה חדשה. `OPENAI_MODEL` אופציונלי. הוראות מלאות ב-`VERCEL_SETUP.md`.
 3. **לאפ סטור:** `eas build` + חשבון Apple Developer + Google Play + מדיניות פרטיות + הצהרת בריאות.
 
 ---
@@ -179,4 +179,4 @@ npm run build      # בונה גרסת web ל-dist/
 ```
 
 - Repo: `https://github.com/Smith3939/smit-gym`
-- הגדרת AI: להגדיר ב-Vercel את `ANTHROPIC_API_KEY` ואת `AI_ALLOWED_EMAILS` לפי `VERCEL_SETUP.md`, ואז לפרוס. אין להגדיר מפתח Claude בלקוח או ב-GitHub.
+- הגדרת AI: להגדיר ב-Vercel את `OPENAI_API_KEY` ואת `AI_ALLOWED_EMAILS` לפי `VERCEL_SETUP.md`, ואז לפרוס. אין להגדיר מפתח OpenAI בלקוח או ב-GitHub.

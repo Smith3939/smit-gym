@@ -1,12 +1,21 @@
 const FIREBASE_PROJECT_ID = 'smith-gymai';
 const FIREBASE_JWKS_URL =
   'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
-const DEFAULT_MODEL = 'claude-sonnet-4-6';
+
+// Current, low-cost model for short Hebrew coaching and JSON swaps.
+// Priced around $0.25 / $2 per 1M input / output tokens.
+// Override with the OPENAI_MODEL env var. Documented in VERCEL_SETUP.md.
+// The file stays api/claude.js so the existing /api/claude client URL keeps working.
+const DEFAULT_MODEL = 'gpt-5-mini';
 const DEFAULT_HOURLY_LIMIT = 20;
 const MAX_MESSAGES = 24;
 const MAX_MESSAGE_CHARS = 8000;
 const MAX_SYSTEM_CHARS = 12000;
 const MAX_OUTPUT_TOKENS = 2048;
+// gpt-5-mini still spends a few hidden reasoning tokens on "minimal" effort.
+// Add a little budget so those tokens don't erase the Hebrew answer.
+// The total still cannot exceed MAX_OUTPUT_TOKENS.
+const REASONING_TOKEN_HEADROOM = 512;
 
 // Best-effort protection. Vercel can use multiple instances, so this is not a
 // substitute for a shared rate-limit service when the app grows.
@@ -61,6 +70,104 @@ function isValidPayload(body) {
   );
 }
 
+function resolveModel() {
+  const configured = typeof process.env.OPENAI_MODEL === 'string' ? process.env.OPENAI_MODEL.trim() : '';
+  return configured || DEFAULT_MODEL;
+}
+
+// The original GPT-5 family defaults to medium reasoning. That hidden thinking
+// can consume the whole completion budget and come back with no visible text.
+// Later GPT-5.x models are not matched here; they default to little or no reasoning.
+function prefersMinimalReasoning(model) {
+  const id = String(model || '').trim().toLowerCase();
+  return (
+    id === 'gpt-5' ||
+    id.startsWith('gpt-5-mini') ||
+    id.startsWith('gpt-5-nano') ||
+    id.startsWith('gpt-5-20')
+  );
+}
+
+function completionTokenBudget(model, maxTokens) {
+  if (!prefersMinimalReasoning(model)) return maxTokens;
+  return Math.min(MAX_OUTPUT_TOKENS, maxTokens + REASONING_TOKEN_HEADROOM);
+}
+
+function buildChatCompletionBody({ model, maxTokens, system, messages }) {
+  const body = {
+    model,
+    max_completion_tokens: completionTokenBudget(model, maxTokens),
+    messages: [{ role: 'system', content: system }, ...messages],
+  };
+
+  if (prefersMinimalReasoning(model)) {
+    body.reasoning_effort = 'minimal';
+  }
+
+  return body;
+}
+
+async function requestChatCompletion({ apiKey, model, maxTokens, system, messages, fetchImpl = fetch }) {
+  let openaiResponse;
+  try {
+    openaiResponse = await fetchImpl('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(
+        buildChatCompletionBody({
+          model,
+          maxTokens,
+          system,
+          messages,
+        })
+      ),
+    });
+  } catch {
+    return { status: 502, body: { error: 'Could not reach the AI provider' } };
+  }
+
+  if (!openaiResponse.ok) {
+    let detail = '';
+    try {
+      const errBody = await openaiResponse.json();
+      detail = errBody?.error?.code || errBody?.error?.type || '';
+    } catch {
+      detail = '';
+    }
+    console.error('OpenAI request failed', openaiResponse.status, detail);
+    return { status: 502, body: { error: 'AI provider request failed' } };
+  }
+
+  let result;
+  try {
+    result = await openaiResponse.json();
+  } catch {
+    return { status: 502, body: { error: 'AI provider returned no text' } };
+  }
+
+  const text = extractAssistantText(result);
+  if (!text) return { status: 502, body: { error: 'AI provider returned no text' } };
+  return { status: 200, body: { text } };
+}
+
+function extractAssistantText(result) {
+  const content = result?.choices?.[0]?.message?.content;
+  if (typeof content === 'string') return content.trim();
+  if (!Array.isArray(content)) return '';
+
+  return content
+    .map((part) => {
+      if (typeof part === 'string') return part;
+      if (part && typeof part.text === 'string') return part.text;
+      return '';
+    })
+    .join('')
+    .trim();
+}
+
 async function verifyFirebaseToken(token) {
   const { createRemoteJWKSet, jwtVerify } = await import('jose');
   jwks ||= createRemoteJWKSet(new URL(FIREBASE_JWKS_URL));
@@ -73,13 +180,14 @@ async function verifyFirebaseToken(token) {
   return payload;
 }
 
-module.exports = async function handler(request, response) {
+async function handler(request, response) {
   if (request.method !== 'POST') {
     response.setHeader('Allow', 'POST');
     return sendJson(response, 405, { error: 'Method not allowed' });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  const apiKey = typeof process.env.OPENAI_API_KEY === 'string' ? process.env.OPENAI_API_KEY.trim() : '';
+  if (!apiKey) {
     return sendJson(response, 503, { error: 'AI service is not configured' });
   }
 
@@ -116,40 +224,20 @@ module.exports = async function handler(request, response) {
     Math.max(1, Number.parseInt(request.body.maxTokens, 10) || 1024),
     MAX_OUTPUT_TOKENS
   );
+  const model = resolveModel();
+  const outcome = await requestChatCompletion({
+    apiKey,
+    model,
+    maxTokens,
+    system: request.body.system,
+    messages: request.body.messages,
+  });
+  return sendJson(response, outcome.status, outcome.body);
+}
 
-  let anthropicResponse;
-  try {
-    anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL || DEFAULT_MODEL,
-        max_tokens: maxTokens,
-        system: request.body.system,
-        messages: request.body.messages,
-      }),
-    });
-  } catch {
-    return sendJson(response, 502, { error: 'Could not reach the AI provider' });
-  }
-
-  if (!anthropicResponse.ok) {
-    console.error('Anthropic request failed', anthropicResponse.status);
-    return sendJson(response, 502, { error: 'AI provider request failed' });
-  }
-
-  const result = await anthropicResponse.json();
-  const text = result.content
-    ?.filter((block) => block.type === 'text')
-    .map((block) => block.text)
-    .join('')
-    .trim();
-
-  if (!text) return sendJson(response, 502, { error: 'AI provider returned no text' });
-
-  return sendJson(response, 200, { text });
-};
+module.exports = handler;
+module.exports.buildChatCompletionBody = buildChatCompletionBody;
+module.exports.extractAssistantText = extractAssistantText;
+module.exports.resolveModel = resolveModel;
+module.exports.requestChatCompletion = requestChatCompletion;
+module.exports.DEFAULT_MODEL = DEFAULT_MODEL;

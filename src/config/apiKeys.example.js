@@ -7,7 +7,7 @@
  * 3. apiKeys.js is gitignored - it will NEVER be committed to GitHub.
  *
  * ⚠️ SECURITY WARNING:
- * Never put an Anthropic / Claude API key in this file.
+ * Never put an OpenAI API key in this file.
  * The AI coach uses the secure Vercel API route in api/claude.js instead.
  */
 
