@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
   ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -6,11 +6,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS } from '../config/theme';
-import { sendMessageToAI, isAIConnected } from '../services/aiService';
+import { sendMessageToAI, isAIConnected, subscribeAiConnection } from '../services/aiService';
 import { useAuth } from '../context/AuthContext';
 import AuroraBackground from '../components/AuroraBackground';
-
-const AI_LIVE = isAIConnected();
 
 const INITIAL_MESSAGE = {
   id: '1',
@@ -23,7 +21,10 @@ export default function AIChatScreen() {
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [aiLive, setAiLive] = useState(() => isAIConnected());
   const scrollViewRef = useRef();
+
+  useEffect(() => subscribeAiConnection(setAiLive), []);
 
   const quickQuestions = [
     'איזה תרגיל חלופי לבאנצ פרס?',
@@ -57,10 +58,11 @@ export default function AIChatScreen() {
         content: aiResponse,
       }]);
     } catch (error) {
+      setAiLive(isAIConnected());
       setMessages((prev) => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'מצטער, הייתה בעיה. נסה שוב 🙏',
+        content: error?.message || 'המאמן החכם לא זמין כרגע. נסה שוב בעוד רגע.',
       }]);
     }
     setIsLoading(false);
@@ -83,7 +85,7 @@ export default function AIChatScreen() {
           <MaterialIcons name="auto-awesome" size={22} color={COLORS.textOnColor} />
         </LinearGradient>
         <Text style={styles.title}>המאמן AI שלך</Text>
-        {AI_LIVE ? (
+        {aiLive ? (
           <View style={styles.aiStatus}>
             <View style={styles.aiStatusDot} />
             <Text style={styles.aiStatusText}>חי</Text>

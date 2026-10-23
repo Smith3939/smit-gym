@@ -25,9 +25,36 @@ export function hasValidClaudeKey() {
   return backendEnabled && Boolean(getApiUrl());
 }
 
+// A real request failure turns the badge off until a later request succeeds.
+// The deployment flag above stays unchanged.
+let forcedOffline = false;
+const connectionListeners = new Set();
+
+export function isAIConnected() {
+  return hasValidClaudeKey() && !forcedOffline;
+}
+
+export function markAiNotLive() {
+  if (forcedOffline) return;
+  forcedOffline = true;
+  connectionListeners.forEach((listener) => listener(false));
+}
+
+export function markAiLive() {
+  if (!hasValidClaudeKey() || !forcedOffline) return;
+  forcedOffline = false;
+  connectionListeners.forEach((listener) => listener(true));
+}
+
+export function subscribeAiConnection(listener) {
+  connectionListeners.add(listener);
+  return () => connectionListeners.delete(listener);
+}
+
 /**
- * Call the authenticated Vercel proxy. Callers retain their local fallback
- * behavior when the backend is not enabled or is temporarily unavailable.
+ * Call the authenticated Vercel proxy. Throws AI_BACKEND_DISABLED when the
+ * backend is intentionally off. Other failures carry status/code so the chat
+ * can show the real error instead of a canned answer.
  */
 export async function callClaude({ system, messages, maxTokens = 1024 }) {
   const apiUrl = getApiUrl();
@@ -49,7 +76,15 @@ export async function callClaude({ system, messages, maxTokens = 1024 }) {
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const idToken = await user.getIdToken();
+    let idToken;
+    try {
+      idToken = await user.getIdToken();
+    } catch {
+      const error = new Error('AUTH_REQUIRED');
+      error.code = 'AUTH_REQUIRED';
+      throw error;
+    }
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -61,7 +96,10 @@ export async function callClaude({ system, messages, maxTokens = 1024 }) {
     });
 
     if (!response.ok) {
-      throw new Error(`AI_API_ERROR_${response.status}`);
+      const error = new Error(`AI_API_ERROR_${response.status}`);
+      error.code = 'AI_API_ERROR';
+      error.status = response.status;
+      throw error;
     }
 
     const result = await response.json();

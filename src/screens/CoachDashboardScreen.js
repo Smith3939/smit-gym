@@ -17,8 +17,9 @@ import { RTL_ICONS } from '../utils/rtl';
 /** One trainee row. */
 function TraineeCard({ data, onPress }) {
   const { profile, flags, workoutsThisWeek, currentWeight, weightDelta } = data;
-  const name = profile?.name || 'מתאמן';
+  const name = profile?.name || data.link?.traineeName || 'מתאמן';
   const topFlag = flags.find((f) => f.level === 'alert') || flags[0];
+  const progressHidden = data.workoutsShared === false && data.weightsShared === false;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
@@ -40,6 +41,8 @@ function TraineeCard({ data, onPress }) {
                 {topFlag.text}
               </Text>
             </View>
+          ) : progressHidden ? (
+            <Text style={styles.cardOk}>המתאמן לא שיתף התקדמות</Text>
           ) : (
             <Text style={styles.cardOk}>בכיוון טוב</Text>
           )}
@@ -49,7 +52,7 @@ function TraineeCard({ data, onPress }) {
       </View>
 
       <View style={styles.statRow}>
-        <Stat label="אימונים השבוע" value={workoutsThisWeek} color={DOMAIN.workout.color} />
+        <Stat label="אימונים השבוע" value={workoutsThisWeek ?? '—'} color={DOMAIN.workout.color} />
         <View style={styles.statDivider} />
         <Stat
           label="משקל"
@@ -146,7 +149,10 @@ export default function CoachDashboardScreen({ navigation }) {
   const doingWell = trainees.filter((t) => !t.needsAttention);
 
   const openTrainee = (t) =>
-    navigation.navigate('TraineeDetail', { traineeUid: t.uid, name: t.profile?.name });
+    navigation.navigate('TraineeDetail', {
+      traineeUid: t.uid,
+      name: t.profile?.name || t.link?.traineeName,
+    });
 
   return (
     <View style={styles.root}>

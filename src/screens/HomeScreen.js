@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions,
 } from 'react-native';
@@ -9,7 +9,7 @@ import {
   COLORS, DOMAIN, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
 } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
-import { isAIConnected } from '../services/aiService';
+import { isAIConnected, subscribeAiConnection } from '../services/aiService';
 import AuroraBackground from '../components/AuroraBackground';
 import ActivityRings, { RingLegend } from '../components/ActivityRings';
 import StatTile, { SectionTitle } from '../components/StatTile';
@@ -50,6 +50,9 @@ export default function HomeScreen({ navigation }) {
   const displayName = userProfile?.name || user?.displayName || 'מתאמן';
   const firstName = displayName.split(' ')[0];
   const [quote] = useState(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  const [aiLive, setAiLive] = useState(() => isAIConnected());
+
+  useEffect(() => subscribeAiConnection(setAiLive), []);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'בוקר טוב' : hour < 18 ? 'צהריים טובים' : 'ערב טוב';
@@ -243,7 +246,7 @@ export default function HomeScreen({ navigation }) {
             <View style={styles.aiText}>
               <View style={styles.aiTitleRow}>
                 <Text style={styles.aiTitle}>מאמן AI</Text>
-                {isAIConnected() && (
+                {aiLive && (
                   <View style={styles.liveDot}>
                     <Text style={styles.liveText}>חי</Text>
                   </View>

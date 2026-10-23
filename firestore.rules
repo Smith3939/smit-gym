@@ -13,9 +13,14 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
     // A coach may read a trainee only while the trainee doc still points at
     // that coach AND the linked coachLinks doc is active and really theirs.
     // Ending the link (or clearing it) drops access even if coachUid is stale.
+    // An active link is not enough: each collection also checks permissions.
     function isCoachOf(userId) {
       let userDoc = get(/databases/$(database)/documents/users/$(userId));
       let linkDoc = get(/databases/$(database)/documents/coachLinks/$(userDoc.data.coachLinkId));
@@ -26,6 +31,22 @@ service cloud.firestore {
         && linkDoc.data.status == 'active';
     }
 
+    // permissions.{workouts,nutrition,metrics,notes} is chosen by the trainee.
+    // A missing key or any value other than true is a refusal.
+    function coachAllows(userId, permission) {
+      let userDoc = get(/databases/$(database)/documents/users/$(userId));
+      let linkDoc = get(/databases/$(database)/documents/coachLinks/$(userDoc.data.coachLinkId));
+      return isCoachOf(userId)
+        && linkDoc.data.permissions[permission] == true;
+    }
+
+    // Weight and calorie targets live on the same profile document. Firestore
+    // cannot hide individual fields, so the coach reads that document only
+    // when the trainee shared both categories.
+    function coachCanReadProfile(userId) {
+      return coachAllows(userId, 'metrics') && coachAllows(userId, 'nutrition');
+    }
+
     // The invite named on a new link must already show this trainee as the
     // redeemer after the same batch (getAfter), and must belong to that coach.
     function redeemedInviteMatches(inviteCode, coachUid) {
@@ -34,31 +55,68 @@ service cloud.firestore {
         && code.data.coachUid == coachUid;
     }
 
-    // ── Private data: the owner writes; their coach may read ─────────────
+    // ── Private data: the owner always; the coach only by permission ─────
     match /users/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
-      allow write: if signedIn() && request.auth.uid == userId;
+      allow read: if isOwner(userId) || coachCanReadProfile(userId);
+      allow write: if isOwner(userId);
 
-      // Progress history (workoutLogs, weightHistory, waterLog…) — the coach
-      // needs to read this to see how the trainee is doing, never to write it.
-      match /{subcollection=**} {
-        allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
-        allow write: if signedIn() && request.auth.uid == userId;
+      // The owner keeps every nested path. Coach reads are listed below,
+      // one permission per data type, so a refusal cannot fall through.
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
       }
-    }
 
-    // ── Coach-authored plans ─────────────────────────────────────────────
-    // Kept OUT of the trainee's own document on purpose: the coach gets a
-    // whole collection they may write, instead of us trying to police which
-    // fields of users/{uid} they're allowed to touch.
-    match /users/{userId}/coachPlans/{planId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
-      allow create, update, delete: if isCoachOf(userId);
-    }
+      // workouts — program, logs, and the in-progress draft
+      match /workoutLogs/{logId} {
+        allow read: if coachAllows(userId, 'workouts');
+      }
+      match /workoutDrafts/{draftId} {
+        allow read: if coachAllows(userId, 'workouts');
+      }
+      match /workout/{document=**} {
+        allow read: if coachAllows(userId, 'workouts');
+      }
 
-    match /users/{userId}/coachNotes/{noteId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isCoachOf(userId));
-      allow create, update, delete: if isCoachOf(userId);
+      // nutrition — meal plan, targets, and swap history
+      match /nutrition/{document=**} {
+        allow read: if coachAllows(userId, 'nutrition');
+      }
+
+      // metrics — weight, water, and similar progress logs
+      match /weightHistory/{entryId} {
+        allow read: if coachAllows(userId, 'metrics');
+      }
+      match /waterLog/{entryId} {
+        allow read: if coachAllows(userId, 'metrics');
+      }
+
+      // Coach-authored plans stay out of the trainee profile. The type on
+      // the plan decides which permission is required, and it cannot be
+      // switched in order to reach the other category.
+      match /coachPlans/{planId} {
+        allow read: if isOwner(userId) || (
+          (resource.data.type == 'workout' && coachAllows(userId, 'workouts'))
+          || (resource.data.type == 'meal' && coachAllows(userId, 'nutrition'))
+        );
+        allow create: if (
+          (request.resource.data.type == 'workout' && coachAllows(userId, 'workouts'))
+          || (request.resource.data.type == 'meal' && coachAllows(userId, 'nutrition'))
+        );
+        allow update: if request.resource.data.type == resource.data.type && (
+          (resource.data.type == 'workout' && coachAllows(userId, 'workouts'))
+          || (resource.data.type == 'meal' && coachAllows(userId, 'nutrition'))
+        );
+        allow delete: if (
+          (resource.data.type == 'workout' && coachAllows(userId, 'workouts'))
+          || (resource.data.type == 'meal' && coachAllows(userId, 'nutrition'))
+        );
+      }
+
+      // notes — personal notes the coach writes for this trainee
+      match /coachNotes/{noteId} {
+        allow read: if isOwner(userId) || coachAllows(userId, 'notes');
+        allow create, update, delete: if coachAllows(userId, 'notes');
+      }
     }
 
     // ── Coach public profile ─────────────────────────────────────────────

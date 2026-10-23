@@ -1,3 +1,5 @@
+const { MAX_CHAT_MESSAGES } = require('./aiLimits');
+
 const FIREBASE_PROJECT_ID = 'smith-gymai';
 const FIREBASE_JWKS_URL =
   'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -8,7 +10,7 @@ const FIREBASE_JWKS_URL =
 // The file stays api/claude.js so the existing /api/claude client URL keeps working.
 const DEFAULT_MODEL = 'gpt-5-mini';
 const DEFAULT_HOURLY_LIMIT = 20;
-const MAX_MESSAGES = 24;
+const MAX_MESSAGES = MAX_CHAT_MESSAGES;
 const MAX_MESSAGE_CHARS = 8000;
 const MAX_SYSTEM_CHARS = 12000;
 const MAX_OUTPUT_TOKENS = 2048;
@@ -241,3 +243,4 @@ module.exports.extractAssistantText = extractAssistantText;
 module.exports.resolveModel = resolveModel;
 module.exports.requestChatCompletion = requestChatCompletion;
 module.exports.DEFAULT_MODEL = DEFAULT_MODEL;
+module.exports.MAX_MESSAGES = MAX_MESSAGES;
