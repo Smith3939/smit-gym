@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
+import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
 
 /**
  * Metric tile — icon chip, giant numeral, label, optional progress bar.
@@ -52,7 +52,7 @@ export default function StatTile({
 
   if (onPress) {
     return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={{ flex: 1 }}>
+      <TouchableOpacity onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}: ${value} ${unit || ''}`} activeOpacity={0.9} style={{ flex: 1 }}>
         {body}
       </TouchableOpacity>
     );
@@ -105,7 +105,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     minHeight: 118,
     justifyContent: 'space-between',
-    ...SHADOWS.small,
   },
   top: {
     flexDirection: 'row-reverse',
@@ -142,9 +141,9 @@ const styles = StyleSheet.create({
   },
   label: {
     color: COLORS.textSecondary,
-    fontSize: FONTS.tiny,
+    fontSize: FONTS.small,
     fontWeight: '600',
-    marginTop: 2,
+    marginTop: SPACING.xs,
   },
   track: {
     height: 4,
@@ -194,6 +193,7 @@ const styles = StyleSheet.create({
 
   sectionRow: {
     flexDirection: 'row-reverse',
+    direction: 'ltr',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: SPACING.lg,

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  Dimensions, Animated, Easing, KeyboardAvoidingView, Platform,
+  useWindowDimensions, Animated, Easing, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,7 +21,6 @@ import { useToast } from '../components/Toast';
 import { USE_NATIVE_DRIVER } from '../utils/animation';
 import { RTL_ICONS } from '../utils/rtl';
 
-const { width } = Dimensions.get('window');
 
 function CategoryChip({ category, active, onPress }) {
   return (
@@ -54,6 +53,7 @@ function RecipeCard({ recipe, onPress, delay }) {
       delay={delay}
       gradientColors={[category.color + '15', category.color + '05']}
       borderColor={category.color + '30'}
+      containerStyle={styles.recipeCardContainer}
       style={styles.recipeCard}
     >
       <View style={styles.recipeCardContent}>
@@ -93,6 +93,7 @@ function RecipeCard({ recipe, onPress, delay }) {
 }
 
 function RecipeDetail({ recipe, calorieBudget, onClose }) {
+  const { width } = useWindowDimensions();
   const category = RECIPE_CATEGORIES.find((c) => c.id === recipe.category);
   const portionData = calculatePortions(recipe, calorieBudget);
   const slideAnim = useRef(new Animated.Value(width)).current;
@@ -661,8 +662,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: SPACING.md,
   },
+  recipeCardContainer: { width: '47%', flexGrow: 1, minWidth: 0 },
   recipeCard: {
-    width: (width - SPACING.md * 2 - SPACING.md) / 2,
     padding: 0,
     minHeight: 180,
   },
