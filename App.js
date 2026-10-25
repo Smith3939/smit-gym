@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
-import { FlatList, Platform, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
+import { FlatList, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -75,10 +75,16 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
         isolation: isolate;
       }
 
-      input,
-      textarea {
-        direction: rtl;
-        text-align: right;
+      input, textarea { caret-color: ${COLORS.primaryDark}; }
+      ::selection { background: ${COLORS.primarySoft}; color: ${COLORS.text}; }
+      :focus-visible { outline: 2px solid ${COLORS.primaryDark}; outline-offset: 3px; }
+      input:focus-visible, textarea:focus-visible { outline-offset: -2px; border-radius: 6px; }
+      [role="button"], [role="tab"], a { touch-action: manipulation; }
+      @media (hover: hover) {
+        [role="button"]:not([aria-disabled="true"]):hover { filter: brightness(0.97); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
       }
     `;
     document.head.appendChild(style);
@@ -118,12 +124,14 @@ export default function App() {
       <SafeAreaProvider style={styles.appRoot}>
         <AuthProvider>
           <ToastProvider>
-            <NavigationContainer theme={appTheme} linking={linking}>
-              <StatusBar style="dark" backgroundColor={COLORS.background} />
-              <AppNavigator />
-            </NavigationContainer>
-            <InstallPrompt />
-            <UpdateChecker />
+            <View style={styles.appFrame}>
+              <NavigationContainer theme={appTheme} linking={linking}>
+                <StatusBar style="dark" backgroundColor={COLORS.background} />
+                <AppNavigator />
+              </NavigationContainer>
+              <InstallPrompt />
+              <UpdateChecker />
+            </View>
           </ToastProvider>
         </AuthProvider>
       </SafeAreaProvider>
@@ -132,6 +140,13 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  appFrame: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 760,
+    alignSelf: 'center',
+    backgroundColor: COLORS.background,
+  },
   appRoot: {
     flex: 1,
     backgroundColor: COLORS.background,

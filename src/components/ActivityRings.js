@@ -142,6 +142,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   legendValue: {
+    writingDirection: 'ltr',
+    direction: 'ltr',
+    textAlign: 'right',
     color: COLORS.text,
     fontSize: FONTS.regular,
     fontWeight: '800',
