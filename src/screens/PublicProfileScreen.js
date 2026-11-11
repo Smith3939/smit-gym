@@ -13,6 +13,7 @@ import GlassCard from '../components/GlassCard';
 import Avatar from '../components/Avatar';
 import {
   getPublicProfile, getUserPosts, sendBuddyRequest, getMyBuddyLinks,
+  getCommunityBlocks, setCommunityBlock, reportCommunityProfile,
 } from '../services/socialService';
 
 const { width } = Dimensions.get('window');
@@ -28,17 +29,27 @@ export default function PublicProfileScreen({ navigation, route }) {
   const [posts, setPosts] = useState([]);
   const [buddyState, setBuddyState] = useState('none');
   const [loading, setLoading] = useState(true);
+  const [moderating, setModerating] = useState(false);
+  const [showReport, setShowReport] = useState(false);
 
   const isMe = uid === user?.uid;
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setProfile(null);
+    setPosts([]);
+    setShowReport(false);
     (async () => {
       try {
+        const blocks = isMe ? [] : await getCommunityBlocks(user.uid);
+        if (blocks.some(b => b.ownerUid === uid || b.targetUid === uid)) return;
         const [p, userPosts, links] = await Promise.all([
           getPublicProfile(uid),
           getUserPosts(uid),
           isMe ? Promise.resolve([]) : getMyBuddyLinks(user.uid),
         ]);
+        if (!active) return;
         setProfile(p);
         setPosts(userPosts);
         const link = links.find(
@@ -47,10 +58,12 @@ export default function PublicProfileScreen({ navigation, route }) {
         setBuddyState(link ? (link.status === 'accepted' ? 'accepted' : 'pending') : 'none');
       } catch (e) {
         console.log('Profile load error:', e);
+      } finally {
+        if (active) setLoading(false);
       }
-      setLoading(false);
     })();
-  }, [uid]);
+    return () => { active = false; };
+  }, [uid, user?.uid]);
 
   const handleRequestBuddy = async () => {
     try {
@@ -67,6 +80,26 @@ export default function PublicProfileScreen({ navigation, route }) {
     } catch (e) {
       toast.error('שליחת הבקשה נכשלה');
     }
+  };
+
+  const moderate = async (reason) => {
+    if (moderating || !user || isMe) return;
+    setModerating(true);
+    try {
+      if (reason === 'block') {
+        await setCommunityBlock(user.uid, uid, true);
+        setProfile(null);
+        setPosts([]);
+        toast.success('המשתמש נחסם');
+        navigation.goBack();
+      } else {
+        await reportCommunityProfile(user.uid, uid, reason);
+        setShowReport(false);
+        toast.success('הדיווח נשלח');
+      }
+    } catch {
+      toast.error('הפעולה לא נשמרה. אם כבר דיווחת על המשתמש, הדיווח הקודם נשאר.');
+    } finally { setModerating(false); }
   };
 
   const photoPosts = posts.filter((p) => p.image);
@@ -157,6 +190,17 @@ export default function PublicProfileScreen({ navigation, route }) {
             </View>
           </GlassCard>
 
+          {!isMe && <View style={styles.safetyActions}>
+            <TouchableOpacity style={styles.safetyButton} accessibilityRole="button" disabled={moderating}
+              onPress={() => moderate('block')}><Text style={styles.safetyText}>חסום משתמש</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.safetyButton} accessibilityRole="button" disabled={moderating}
+              onPress={() => setShowReport(!showReport)}><Text style={styles.safetyText}>{showReport ? 'סגור דיווח' : 'דווח על המשתמש'}</Text></TouchableOpacity>
+            {showReport && [['harassment', 'הטרדה'], ['spam', 'ספאם'], ['other', 'סיבה אחרת']].map(([reason, label]) =>
+              <TouchableOpacity key={reason} style={styles.safetyButton} accessibilityRole="button" disabled={moderating}
+                onPress={() => moderate(reason)}><Text style={styles.safetyText}>שלח דיווח: {label}</Text></TouchableOpacity>
+            )}
+          </View>}
+
           {/* Photo grid */}
           {photoPosts.length > 0 && (
             <>
@@ -206,6 +250,10 @@ export default function PublicProfileScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  safetyActions: { marginBottom: 16 },
+  safetyButton: { minHeight: 44, justifyContent: 'center', borderTopWidth: 1, borderTopColor: COLORS.border },
+  safetyText: { color: COLORS.primaryDark, fontSize: 14, fontWeight: '700', textAlign: 'right' },
+
   root: {
     flex: 1,
     backgroundColor: COLORS.background,

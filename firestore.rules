@@ -200,17 +200,59 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
 
+    function communityBlocked(a, b) {
+      return exists(/databases/$(database)/documents/communityBlocks/$(a + '~' + b))
+        || exists(/databases/$(database)/documents/communityBlocks/$(b + '~' + a));
+    }
+
+    match /communityBlocks/{id} {
+      allow read: if signedIn() && (resource.data.ownerUid == request.auth.uid
+        || resource.data.targetUid == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['ownerUid', 'targetUid'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.targetUid is string
+        && request.resource.data.targetUid != request.auth.uid
+        && id == request.auth.uid + '~' + request.resource.data.targetUid;
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /communityReports/{id} {
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['reporterUid', 'targetUid', 'reason', 'createdAt'])
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.targetUid is string
+        && request.resource.data.targetUid != request.auth.uid
+        && id == request.auth.uid + '~' + request.resource.data.targetUid
+        && request.resource.data.reason in ['harassment', 'spam', 'other']
+        && request.resource.data.createdAt == request.time;
+    }
+
+    function validPartnerCard(data) {
+      return !('partnerCard' in data) || (
+        data.partnerCard is map
+        && data.partnerCard.keys().hasOnly(['area', 'activity', 'availability', 'expiresAt'])
+        && data.partnerCard.area is string && data.partnerCard.area.size() > 0 && data.partnerCard.area.size() <= 80
+        && data.partnerCard.activity is string && data.partnerCard.activity.size() > 0 && data.partnerCard.activity.size() <= 80
+        && data.partnerCard.availability is string && data.partnerCard.availability.size() > 0 && data.partnerCard.availability.size() <= 120
+        && data.partnerCard.expiresAt is timestamp
+        && data.partnerCard.expiresAt > request.time
+        && data.partnerCard.expiresAt <= request.time + duration.value(8, 'd')
+      );
+    }
+
     // ── Public profiles: signed-in read, owner write, no exact GPS ───────
     // `geohash5` is a coarse cell (~5 km). `location` (exact lat/lng) is rejected.
     // Delete is separate: request.resource does not exist on delete.
     match /publicProfiles/{userId} {
-      allow read: if signedIn();
+      allow list: if signedIn();
+      allow get: if signedIn() && !communityBlocked(request.auth.uid, userId);
 
       allow create, update: if signedIn()
         && request.auth.uid == userId
         && !('location' in request.resource.data)
         && request.resource.data.get('geohash5', '') is string
-        && request.resource.data.get('geohash5', '').size() <= 5;
+        && request.resource.data.get('geohash5', '').matches('^([0123456789bcdefghjkmnpqrstuvwxyz]{5})?$')
+        && (resource != null && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['partnerCard'])
+          || validPartnerCard(request.resource.data));
 
       allow delete: if signedIn() && request.auth.uid == userId;
     }
@@ -219,7 +261,9 @@ service cloud.firestore {
     match /posts/{postId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if signedIn() && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
 
       // Likes: one doc per user, each user manages only their own like
       match /likes/{likeUid} {
@@ -232,9 +276,17 @@ service cloud.firestore {
     match /buddyRequests/{requestId} {
       allow read: if signedIn() &&
         (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
-      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.status == 'pending'
+        && !communityBlocked(request.auth.uid, request.resource.data.toUid);
       // Only the recipient can accept/decline
-      allow update: if signedIn() && resource.data.toUid == request.auth.uid;
+      allow update: if signedIn() && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && !communityBlocked(resource.data.fromUid, resource.data.toUid);
       allow delete: if signedIn() &&
         (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
     }

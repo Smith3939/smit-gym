@@ -8,7 +8,7 @@ async function loadGeohash() {
   return import(href);
 }
 
-const { encode, decodeCenter } = await loadGeohash();
+const { encode, decodeCenter, nearbyPrefixes } = await loadGeohash();
 
 test('precision 5 matches the well-known ezs42 vector', () => {
   assert.equal(encode(42.6, -5.6, 5), 'ezs42');
@@ -35,4 +35,17 @@ test('decodeCenter rejects empty and invalid hashes', () => {
   assert.equal(decodeCenter(''), null);
   assert.equal(decodeCenter(null), null);
   assert.equal(decodeCenter('ezs4!'), null);
+});
+
+test('nearby prefixes cover nearby cell centers across grid and date-line boundaries', () => {
+  for (const [lat, lng] of [[32.08, 34.78], [0, 179.97], [60, -179.98], [88, 15]]) {
+    const prefixes = nearbyPrefixes({ lat, lng });
+    assert.ok(prefixes.length > 0);
+    for (const offset of [-0.11, 0, 0.11]) {
+      const targetLat = lat + offset;
+      const targetLng = ((lng + 0.07 + 540) % 360) - 180;
+      const hash = encode(targetLat, targetLng);
+      assert.ok(prefixes.some(prefix => hash.startsWith(prefix)), hash);
+    }
+  }
 });
