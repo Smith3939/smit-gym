@@ -17,6 +17,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS } from '../config/theme';
 import GlassCard from '../components/GlassCard';
+import ExerciseIllustration from '../components/ExerciseIllustration';
 import GeometricPattern from '../components/GeometricPattern';
 import ProgressRing from '../components/ProgressRing';
 import { FadeInView } from '../components/AnimatedCard';
@@ -159,6 +160,7 @@ function ExerciseCard({ exercise, index, onSwap, onUpdateSet, setLogs, swapping 
             {exercise.isCardio && ' | אירובי'}
           </Text>
         </View>
+        <ExerciseIllustration exerciseId={exercise.exerciseId} name={exercise.name} />
         {exercise.isCompound && (
           <View style={styles.compoundBadge}>
             <MaterialIcons name="star" size={14} color={COLORS.primary} />
