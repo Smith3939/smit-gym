@@ -13,13 +13,13 @@
 
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, updateDoc,
-  query, where, orderBy, limit, serverTimestamp, getCountFromServer, deleteField,
+  query, where, orderBy, limit, serverTimestamp, getCountFromServer, deleteField, onSnapshot, Timestamp,
 } from 'firebase/firestore';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { db } from '../config/firebase';
-import { encode } from '../utils/geohash';
+import { nearbyPrefixes } from '../utils/geohash';
 
 // ─── Public profiles ────────────────────────────────────────────────────────
 
@@ -39,42 +39,94 @@ export async function upsertPublicProfile(uid, data) {
   }, { merge: true });
 }
 
-function readLatLng(location) {
-  if (!location || typeof location !== 'object') return null;
-  const lat = typeof location.lat === 'number' ? location.lat : null;
-  const lng = typeof location.lng === 'number' ? location.lng : null;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return { lat, lng };
+export async function clearSharedLocation(uid) {
+  await updateDoc(doc(db, 'publicProfiles', uid), {
+    geohash5: deleteField(), location: deleteField(), updatedAt: serverTimestamp(),
+  });
 }
 
-/**
- * If this user's public profile still has an exact GPS fix, replace it with
- * geohash5 and delete `location` in one owner write. Returns the coarse hash
- * when one is stored (or was just written).
- */
 export async function scrubExactPublicLocation(uid) {
   if (!uid) return null;
   const snap = await getDoc(doc(db, 'publicProfiles', uid));
   if (!snap.exists()) return null;
   const data = snap.data();
-  if (data.location == null) return data.geohash5 || null;
+  if ('location' in data) {
+    await clearSharedLocation(uid);
+    return null;
+  }
+  return data.geohash5 || null;
+}
 
-  const coords = readLatLng(data.location);
-  const patch = {};
-  if (coords) patch.geohash5 = encode(coords.lat, coords.lng, 5);
-  await upsertPublicProfile(uid, patch);
-  return patch.geohash5 || data.geohash5 || null;
+export async function getNearbyProfiles(location) {
+  const results = await Promise.all(nearbyPrefixes(location).map(prefix =>
+    getDocs(query(collection(db, 'publicProfiles'),
+      where('geohash5', '>=', prefix), where('geohash5', '<', prefix + '\uf8ff')))
+  ));
+  return results.flatMap(snap => snap.docs.map(d => ({ ...d.data(), uid: d.id })));
+}
+
+export async function getActivePartnerProfiles() {
+  const snap = await getDocs(query(collection(db, 'publicProfiles'),
+    where('partnerCard.expiresAt', '>', Timestamp.now())));
+  return snap.docs.map(d => ({ ...d.data(), uid: d.id }));
+}
+
+export function subscribeCommunity(uid, { posts, links, blocked, error }) {
+  const listenPair = (name, fields, emit) => {
+    const rows = [null, null];
+    return fields.map((field, index) => onSnapshot(
+      query(collection(db, name), where(field, '==', uid)),
+      snap => {
+        rows[index] = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        if (rows.every(Boolean)) emit(rows.flat());
+      }, error,
+    ));
+  };
+  const cleanups = [
+    onSnapshot(query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(50)),
+      snap => posts(snap.docs.map(d => ({ ...d.data(), id: d.id }))), error),
+    ...listenPair('buddyRequests', ['fromUid', 'toUid'], links),
+    ...listenPair('communityBlocks', ['ownerUid', 'targetUid'], blocked),
+  ];
+  return () => cleanups.forEach(stop => stop());
+}
+
+export function setCommunityBlock(ownerUid, targetUid, active) {
+  const ref = doc(db, 'communityBlocks', ownerUid + '~' + targetUid);
+  return active ? setDoc(ref, { ownerUid, targetUid }) : deleteDoc(ref);
+}
+
+export async function getCommunityBlocks(uid) {
+  const snaps = await Promise.all(['ownerUid', 'targetUid'].map(field =>
+    getDocs(query(collection(db, 'communityBlocks'), where(field, '==', uid)))));
+  return snaps.flatMap(snap => snap.docs.map(d => d.data()));
+}
+
+export function reportCommunityProfile(reporterUid, targetUid, reason) {
+  return setDoc(doc(db, 'communityReports', reporterUid + '~' + targetUid), {
+    reporterUid, targetUid, reason, createdAt: serverTimestamp(),
+  });
+}
+
+export function savePartnerCard(uid, { area, activity, availability }, name) {
+  return upsertPublicProfile(uid, { name, partnerCard: {
+    area, activity, availability, expiresAt: Timestamp.fromMillis(Date.now() + 7 * 86400000),
+  } });
+}
+
+export function removePartnerCard(uid) {
+  return updateDoc(doc(db, 'publicProfiles', uid), { partnerCard: deleteField() });
 }
 
 export async function getPublicProfile(uid) {
   const snap = await getDoc(doc(db, 'publicProfiles', uid));
-  return snap.exists() ? { uid: snap.id, ...snap.data() } : null;
+  return snap.exists() ? { ...snap.data(), uid: snap.id } : null;
 }
 
 /** All public profiles for the "discover people" screen (fine for beta scale). */
 export async function getAllPublicProfiles(max = 100) {
   const snap = await getDocs(query(collection(db, 'publicProfiles'), limit(max)));
-  return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+  return snap.docs.map((d) => ({ ...d.data(), uid: d.id }));
 }
 
 // ─── Posts / feed ───────────────────────────────────────────────────────────

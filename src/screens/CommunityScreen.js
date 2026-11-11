@@ -13,9 +13,10 @@ import GlassCard from '../components/GlassCard';
 import Avatar from '../components/Avatar';
 import { FadeInView } from '../components/AnimatedCard';
 import {
-  getFeedPosts, createPost, deletePost, toggleLike, getLikeInfo,
-  getAllPublicProfiles, upsertPublicProfile, scrubExactPublicLocation, sendBuddyRequest,
-  getIncomingRequests, getMyBuddyLinks, respondToBuddyRequest,
+  createPost, deletePost, toggleLike, getLikeInfo,
+  getAllPublicProfiles, upsertPublicProfile, getPublicProfile, sendBuddyRequest,
+  respondToBuddyRequest, getNearbyProfiles, clearSharedLocation, subscribeCommunity,
+  setCommunityBlock, savePartnerCard, removePartnerCard, getActivePartnerProfiles,
   pickAndCompressImage, getCurrentLocation, distanceKm,
 } from '../services/socialService';
 import { decodeCenter, encode } from '../utils/geohash';
@@ -166,7 +167,7 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
 
 // ─── Person card (discover) ─────────────────────────────────────────────────
 
-function PersonCard({ person, buddyState, distance, onOpenProfile, onRequestBuddy }) {
+function PersonCard({ person, partnerCard, buddyState, distance, onOpenProfile, onRequestBuddy }) {
   const buddyLabel = {
     none: 'אימון משותף?',
     pending: 'ממתין...',
@@ -197,6 +198,11 @@ function PersonCard({ person, buddyState, distance, onOpenProfile, onRequestBudd
         </View>
       </TouchableOpacity>
 
+      {partnerCard && <View style={styles.partnerCard}>
+        <Text style={styles.toolTitle}>מחפש שותף לאימון</Text>
+        <Text style={styles.toolHelp}>{partnerCard.area} · {partnerCard.activity}</Text>
+        <Text style={styles.toolHelp}>{partnerCard.availability}</Text>
+      </View>}
       <TouchableOpacity
         style={[
           styles.buddyBtn,
@@ -228,7 +234,8 @@ export default function CommunityScreen({ navigation }) {
   const [tab, setTab] = useState('feed'); // 'feed' | 'people'
   const [posts, setPosts] = useState([]);
   const [people, setPeople] = useState([]);
-  const [requests, setRequests] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [blocksReady, setBlocksReady] = useState(false);
   const [buddyLinks, setBuddyLinks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -243,6 +250,20 @@ export default function CommunityScreen({ navigation }) {
   // Exact fix stays in memory for this session only. What we store is geohash5.
   const [myLocation, setMyLocation] = useState(null);
   const [myGeohash5, setMyGeohash5] = useState(null);
+  const [nearby, setNearby] = useState([]);
+  const [partners, setPartners] = useState([]);
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [card, setCard] = useState(null);
+  const [editingCard, setEditingCard] = useState(false);
+  const [cardBusy, setCardBusy] = useState(false);
+  const [cardDraft, setCardDraft] = useState({ area: '', activity: '', availability: '' });
+  const [now, setNow] = useState(Date.now);
+  const hidden = new Set(blocks.map(b => b.ownerUid === user?.uid ? b.targetUid : b.ownerUid));
+  const visiblePosts = blocksReady ? posts.filter(post => !hidden.has(post.uid)) : [];
+  const requests = blocksReady ? buddyLinks.filter(link =>
+    link.toUid === user?.uid && link.status === 'pending' && !hidden.has(link.fromUid)) : [];
+  const activeCard = card?.expiresAt?.toMillis?.() > now;
+
 
   const myName = userProfile?.name || user?.displayName || 'מתאמן';
   const myPhoto = userProfile?.photo || null;
@@ -250,29 +271,10 @@ export default function CommunityScreen({ navigation }) {
   const loadAll = useCallback(async () => {
     if (!user) return;
     try {
-      const [feedData, peopleData, reqData, linksData] = await Promise.all([
-        getFeedPosts(),
-        getAllPublicProfiles(),
-        getIncomingRequests(user.uid),
-        getMyBuddyLinks(user.uid),
-      ]);
-      const mine = peopleData.find((p) => p.uid === user.uid);
-      let myHash = mine?.geohash5 || null;
-      if (mine?.location) {
-        try {
-          myHash = await scrubExactPublicLocation(user.uid);
-        } catch (e) {
-          console.log('Public location scrub failed:', e);
-        }
-      }
-      if (myHash) setMyGeohash5(myHash);
-
-      setPosts(feedData);
-      setPeople(peopleData
-        .filter((p) => p.uid !== user.uid)
-        .map(({ location, ...person }) => person));
-      setRequests(reqData);
-      setBuddyLinks(linksData);
+      const [peopleData, mine] = await Promise.all([getAllPublicProfiles(), getPublicProfile(user.uid)]);
+      setMyGeohash5(mine?.geohash5 || null);
+      setCard(mine?.partnerCard || null);
+      setPeople(peopleData.filter(p => p.uid !== user.uid));
     } catch (e) {
       console.log('Community load error:', e);
       toast.error('טעינת הקהילה נכשלה');
@@ -282,50 +284,31 @@ export default function CommunityScreen({ navigation }) {
   }, [user]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => {
+    if (!user?.uid) return;
+    setBlocksReady(false);
+    const stop = subscribeCommunity(user.uid, {
+      posts: setPosts, links: setBuddyLinks,
+      blocked: value => { setBlocks(value); setBlocksReady(true); },
+      error: () => toast.error('עדכון הקהילה נכשל. בדוק את החיבור ונסה שוב.'),
+    });
+    const ticker = setInterval(() => setNow(Date.now()), 30000);
+    return () => { stop(); clearInterval(ticker); };
+  }, [user?.uid]);
 
   const handlePost = async () => {
     const text = composerText.trim();
     const image = composerImage;
     if (!text && !image) return;
 
-    // Show the post immediately. The Firestore write can take longer when an
-    // image is included, but the user should not wait for a second feed load.
-    const optimisticId = `pending-${Date.now()}`;
-    setPosts((prev) => [{
-      id: optimisticId,
-      uid: user.uid,
-      authorName: myName,
-      authorPhoto: myPhoto,
-      authorGym: userProfile?.gymName || null,
-      text,
-      image,
-      type: 'text',
-      payload: null,
-      createdAt: { seconds: Math.floor(Date.now() / 1000) },
-      pending: true,
-    }, ...prev]);
-    setComposerText('');
-    setComposerImage(null);
     setPosting(true);
     try {
-      const postId = await createPost({
-        uid: user.uid,
-        authorName: myName,
-        authorPhoto: myPhoto,
-        authorGym: userProfile?.gymName || null,
-        text,
-        image,
-        type: 'text',
-        payload: null,
-      }).catch((error) => {
-        setPosts((prev) => prev.filter((post) => post.id !== optimisticId));
-        setComposerText(text);
-        setComposerImage(image);
-        throw error;
+      await createPost({
+        uid: user.uid, authorName: myName, authorPhoto: myPhoto,
+        authorGym: userProfile?.gymName || null, text, image, type: 'text', payload: null,
       });
-      setPosts((prev) => prev.map((post) => (
-        post.id === optimisticId ? { ...post, id: postId, pending: false } : post
-      )));
+      setComposerText('');
+      setComposerImage(null);
       toast.success('הפוסט פורסם! 🎉');
     } catch (e) {
       toast.error('הפרסום נכשל, נסה שוב');
@@ -338,22 +321,59 @@ export default function CommunityScreen({ navigation }) {
     if (img) setComposerImage(img);
   };
 
-  const handleShareLocation = async () => {
+  const handleLocation = async (action) => {
+    if (locationBusy) return;
+    setLocationBusy(true);
     try {
-      const loc = await getCurrentLocation();
-      if (!loc) {
-        toast.info('לא ניתנה הרשאת מיקום');
+      if (action === 'stop') {
+        await clearSharedLocation(user.uid);
+        setMyGeohash5(null);
+        toast.success('שיתוף האזור הופסק');
         return;
       }
-      setMyLocation(loc);
-      const geohash5 = encode(loc.lat, loc.lng, 5);
-      setMyGeohash5(geohash5);
-      await upsertPublicProfile(user.uid, { geohash5 });
-      setPeopleFilter('near');
-      toast.success('המיקום שותף - מציג מתאמנים קרובים');
-    } catch (e) {
-      toast.error('שיתוף המיקום נכשל');
+      const loc = myLocation || await getCurrentLocation();
+      if (!loc) { toast.info('לא ניתנה הרשאת מיקום'); return; }
+      if (action === 'share') {
+        const geohash5 = encode(loc.lat, loc.lng, 5);
+        await upsertPublicProfile(user.uid, { name: myName, geohash5 });
+        setMyGeohash5(geohash5);
+        toast.success('האזור המשוער שותף');
+      } else {
+        // The exact fix stays in memory; Firestore receives coarse search prefixes.
+        const results = await getNearbyProfiles(loc);
+        setNearby(results.filter(p => p.uid !== user.uid));
+        setMyLocation(loc);
+        setPeopleFilter('near');
+      }
+    } catch {
+      toast.error('פעולת המיקום נכשלה. נסה שוב.');
+    } finally { setLocationBusy(false); }
+  };
+
+  const handlePartnerCard = async (remove = false) => {
+    if (cardBusy) return;
+    const values = Object.fromEntries(Object.entries(cardDraft).map(([k, v]) => [k, v.trim()]));
+    if (!remove && Object.values(values).some(v => !v)) {
+      toast.info('יש למלא אזור, סוג אימון וזמנים');
+      return;
     }
+    setCardBusy(true);
+    try {
+      if (remove) await removePartnerCard(user.uid);
+      else await savePartnerCard(user.uid, values, myName);
+      const mine = await getPublicProfile(user.uid);
+      setCard(mine?.partnerCard || null);
+      setEditingCard(false);
+      toast.success(remove ? 'הכרטיס הוסר' : 'הכרטיס פורסם לשבעה ימים');
+    } catch { toast.error('עדכון הכרטיס נכשל'); }
+    finally { setCardBusy(false); }
+  };
+
+  const openPartnerSearch = async () => {
+    try {
+      setPartners((await getActivePartnerProfiles()).filter(p => p.uid !== user.uid));
+      setPeopleFilter('partners');
+    } catch { toast.error('חיפוש שותפים נכשל'); }
   };
 
   const handleRequestBuddy = async (person) => {
@@ -367,9 +387,6 @@ export default function CommunityScreen({ navigation }) {
       } else {
         toast.success(`נשלחה בקשת אימון משותף ל${person.name || 'מתאמן'} 💪`);
       }
-      setBuddyLinks((prev) => [...prev, {
-        fromUid: user.uid, toUid: person.uid, status: res.status,
-      }]);
     } catch (e) {
       toast.error('שליחת הבקשה נכשלה');
     }
@@ -378,10 +395,6 @@ export default function CommunityScreen({ navigation }) {
   const handleRespond = async (req, status) => {
     try {
       await respondToBuddyRequest(req.id, status);
-      setRequests((prev) => prev.filter((r) => r.id !== req.id));
-      setBuddyLinks((prev) => prev.map((l) =>
-        l.id === req.id ? { ...l, status } : l
-      ));
       toast.success(status === 'accepted' ? `אתם חברי אימון! 💪` : 'הבקשה נדחתה');
     } catch (e) {
       toast.error('הפעולה נכשלה');
@@ -400,7 +413,8 @@ export default function CommunityScreen({ navigation }) {
 
   // People filtering
   const effectiveLocation = myLocation || decodeCenter(myGeohash5);
-  const filteredPeople = people
+  const filteredPeople = (blocksReady ? (peopleFilter === 'near' ? nearby : peopleFilter === 'partners' ? partners : people) : [])
+    .filter(p => !hidden.has(p.uid))
     .map((p) => ({
       ...p,
       distance: distanceKm(effectiveLocation, decodeCenter(p.geohash5)),
@@ -414,6 +428,7 @@ export default function CommunityScreen({ navigation }) {
         return userProfile?.city && p.city &&
           p.city.trim() === userProfile.city.trim();
       }
+      if (peopleFilter === 'partners') return p.partnerCard?.expiresAt?.toMillis?.() > now;
       if (peopleFilter === 'near') return p.distance != null && p.distance <= 25;
       return true;
     })
@@ -423,6 +438,7 @@ export default function CommunityScreen({ navigation }) {
     { id: 'all', label: 'הכל', icon: 'public' },
     { id: 'gym', label: 'החדר שלי', icon: 'fitness-center' },
     { id: 'city', label: 'העיר שלי', icon: 'location-city' },
+    { id: 'partners', label: 'מחפשים שותף', icon: 'group-add' },
     { id: 'near', label: 'קרובים אליי', icon: 'near-me' },
   ];
 
@@ -475,7 +491,14 @@ export default function CommunityScreen({ navigation }) {
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
-                onRefresh={() => { setRefreshing(true); loadAll(); }}
+                onRefresh={async () => {
+                  setRefreshing(true);
+                  try {
+                    if (tab === 'people' && peopleFilter === 'near') await handleLocation('search');
+                    else if (tab === 'people' && peopleFilter === 'partners') await openPartnerSearch();
+                    await loadAll();
+                  } finally { setRefreshing(false); }
+                }}
                 tintColor={COLORS.primary}
               />
             }
@@ -527,14 +550,14 @@ export default function CommunityScreen({ navigation }) {
                 </GlassCard>
 
                 {/* Posts */}
-                {posts.length === 0 ? (
+                {visiblePosts.length === 0 ? (
                   <FadeInView style={styles.emptyState}>
                     <MaterialIcons name="forum" size={48} color={COLORS.textMuted} />
                     <Text style={styles.emptyTitle}>עדיין אין פוסטים</Text>
                     <Text style={styles.emptySubtext}>היה הראשון לשתף את האימון שלך!</Text>
                   </FadeInView>
                 ) : (
-                  posts.map((post) => (
+                  visiblePosts.map((post) => (
                     <PostCard
                       key={post.id}
                       post={post}
@@ -581,28 +604,41 @@ export default function CommunityScreen({ navigation }) {
                   </GlassCard>
                 )}
 
-                {/* Location prompt */}
-                {!effectiveLocation && (
-                  <TouchableOpacity onPress={handleShareLocation} activeOpacity={0.85}>
-                    <GlassCard
-                      style={styles.locationPrompt}
-                      gradientColors={['rgba(10,132,255,0.18)', 'rgba(191,90,242,0.08)']}
-                      borderColor="rgba(10,132,255,0.35)"
-                      noAnimation
-                    >
-                      <View style={styles.locationPromptInner}>
-                        <MaterialIcons name="my-location" size={24} color={COLORS.secondary} />
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.locationPromptTitle}>מי מתאמן לידך?</Text>
-                          <Text style={styles.locationPromptText}>
-                            שתף מיקום כדי לראות מתאמנים בסביבה שלך
-                          </Text>
-                        </View>
-                        <MaterialIcons name="chevron-left" size={22} color={COLORS.secondary} />
-                      </View>
-                    </GlassCard>
+                <View style={styles.communityTools}>
+                  <Text style={styles.toolTitle}>מיקום ושותפים לאימון</Text>
+                  <Text style={styles.toolHelp}>חיפוש קרובים לא מפרסם את המיקום שלך. אם תבחר לשתף, משתמשים מחוברים יוכלו לראות אזור משוער בלבד.</Text>
+                  <TouchableOpacity style={styles.toolButton} accessibilityRole="button" disabled={locationBusy}
+                    onPress={() => handleLocation(myGeohash5 ? 'stop' : 'share')}>
+                    <Text style={styles.toolAction}>{myGeohash5 ? 'הפסק שיתוף מיקום' : 'שתף את האזור שלי'}</Text>
                   </TouchableOpacity>
-                )}
+                  <TouchableOpacity style={styles.toolButton} accessibilityRole="button" onPress={() => {
+                    if (!editingCard) setCardDraft(activeCard ? {
+                      area: card.area, activity: card.activity, availability: card.availability,
+                    } : { area: '', activity: '', availability: '' });
+                    setEditingCard(!editingCard);
+                  }}>
+                    <Text style={styles.toolAction}>{editingCard ? 'סגור עריכה' : activeCard ? 'ערוך כרטיס שותף' : 'פרסם כרטיס ״מחפש שותף״'}</Text>
+                  </TouchableOpacity>
+                  {editingCard && <>
+                    <Text style={styles.toolHelp}>הכרטיס גלוי בקהילה לשבעה ימים. כתוב אזור כללי, בלי כתובת או פרטי קשר.</Text>
+                    {[['area', 'חדר כושר או אזור', 80], ['activity', 'סוג אימון', 80], ['availability', 'ימים ושעות מועדפים', 120]].map(([key, label, maxLength]) =>
+                      <TextInput key={key} style={styles.toolInput} accessibilityLabel={label} placeholder={label}
+                        maxLength={maxLength} value={cardDraft[key]} onChangeText={value => setCardDraft(prev => ({ ...prev, [key]: value }))} />
+                    )}
+                    <TouchableOpacity style={styles.toolButton} accessibilityRole="button" disabled={cardBusy} onPress={() => handlePartnerCard()}>
+                      <Text style={styles.toolAction}>פרסם לשבעה ימים</Text>
+                    </TouchableOpacity>
+                  </>}
+                  {activeCard && <TouchableOpacity style={styles.toolButton} accessibilityRole="button" disabled={cardBusy}
+                    onPress={() => handlePartnerCard(true)}><Text style={styles.toolAction}>הסר את הכרטיס שלי</Text></TouchableOpacity>}
+                  {blocks.filter(b => b.ownerUid === user?.uid).map(b => (
+                    <TouchableOpacity key={b.targetUid} style={styles.toolButton} accessibilityRole="button"
+                      onPress={() => setCommunityBlock(user.uid, b.targetUid, false)
+                        .then(() => toast.success('החסימה הוסרה')).catch(() => toast.error('לא הצלחנו להסיר את החסימה'))}>
+                      <Text style={styles.toolAction}>בטל חסימה: {people.find(p => p.uid === b.targetUid)?.name || b.targetUid}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
                 {/* Filter chips */}
                 <ScrollView
@@ -615,8 +651,10 @@ export default function CommunityScreen({ navigation }) {
                       key={f.id}
                       style={[styles.filterChip, peopleFilter === f.id && styles.filterChipActive]}
                       onPress={() => {
-                        if (f.id === 'near' && !effectiveLocation) {
-                          handleShareLocation();
+                        if (f.id === 'near') {
+                          handleLocation('search');
+                        } else if (f.id === 'partners') {
+                          openPartnerSearch();
                         } else {
                           setPeopleFilter(f.id);
                         }
@@ -657,6 +695,7 @@ export default function CommunityScreen({ navigation }) {
                     <PersonCard
                       key={person.uid}
                       person={person}
+                      partnerCard={person.partnerCard?.expiresAt?.toMillis?.() > now ? person.partnerCard : null}
                       distance={person.distance}
                       buddyState={buddyStateFor(person.uid)}
                       onOpenProfile={openProfile}
@@ -676,6 +715,14 @@ export default function CommunityScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  communityTools: { backgroundColor: COLORS.surface, padding: 16, borderRadius: 16, marginBottom: 16 },
+  toolTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700', textAlign: 'right' },
+  toolHelp: { color: COLORS.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'right' },
+  toolButton: { minHeight: 44, justifyContent: 'center', borderTopWidth: 1, borderTopColor: COLORS.border },
+  toolAction: { color: COLORS.primaryDark, fontSize: 14, fontWeight: '700', textAlign: 'right' },
+  toolInput: { minHeight: 48, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, paddingHorizontal: 12, marginVertical: 4, color: COLORS.text, textAlign: 'right' },
+  partnerCard: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
+
   root: {
     flex: 1,
     backgroundColor: COLORS.background,

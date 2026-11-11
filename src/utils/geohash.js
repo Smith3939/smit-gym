@@ -84,3 +84,28 @@ export function decodeCenter(hash) {
     lng: (lngMin + lngMax) / 2,
   };
 }
+
+// Cover the spherical search bounds with precision-four cells. The caller
+// applies the actual distance filter to the returned coarse cell centers.
+export function nearbyPrefixes({ lat, lng }, km = 25) {
+  const radians = Math.PI / 180;
+  const angular = km / 6371;
+  const latitudeDelta = angular / radians;
+  const longitudeDelta = Math.abs(lat) + latitudeDelta >= 90
+    ? 180 : Math.asin(Math.min(1, Math.sin(angular) / Math.cos(lat * radians))) / radians;
+  const height = 180 / 1024;
+  const width = 360 / 1024;
+  const startY = Math.max(0, Math.floor((lat - latitudeDelta + 90) / height));
+  const endY = Math.min(1023, Math.floor((lat + latitudeDelta + 90) / height));
+  const startX = Math.floor((lng - longitudeDelta + 180) / width);
+  const endX = Math.floor((lng + longitudeDelta + 180) / width);
+  const prefixes = new Set();
+  for (let y = startY; y <= endY; y++) {
+    for (let x = startX; x <= endX; x++) {
+      const wrapped = ((x % 1024) + 1024) % 1024;
+      prefixes.add(encode((y + 0.5) * height - 90, (wrapped + 0.5) * width - 180, 4));
+    }
+  }
+  // At extreme latitudes, group the same cells into broader prefixes.
+  return prefixes.size > 40 ? [...new Set([...prefixes].map(p => p.slice(0, 2)))] : [...prefixes];
+}
