@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { COLORS, FONTS, SPACING } from '../config/theme';
 import { registerUser } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { RTL_ICONS } from '../utils/rtl';
+import AuthShell, { authStyles } from '../components/AuthShell';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -78,34 +78,14 @@ export default function RegisterScreen({ navigation, route }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        bounces={false}
-        alwaysBounceVertical={false}
-        overScrollMode="never"
-      >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialIcons name={RTL_ICONS.back} size={28} color={COLORS.text} />
-          </TouchableOpacity>
-          <Text style={styles.title}>צור חשבון</Text>
-        </View>
-
-        <View style={styles.logoSection}>
-          <MaterialIcons name="fitness-center" size={48} color={COLORS.primary} />
-          <Text style={styles.logoText}>SMIT GYM</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
+    <AuthShell title="צור חשבון" onBack={() => navigation.goBack()}>
+        <View>
+          <Text style={authStyles.label}>שם מלא</Text>
+          <View style={authStyles.field}>
             <MaterialIcons name="person" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={authStyles.input}
+              accessibilityLabel="שם מלא"
               placeholder="שם מלא"
               placeholderTextColor={COLORS.textMuted}
               value={name}
@@ -115,10 +95,12 @@ export default function RegisterScreen({ navigation, route }) {
             />
           </View>
 
-          <View style={styles.inputContainer}>
+          <Text style={authStyles.label}>אימייל</Text>
+          <View style={authStyles.field}>
             <MaterialIcons name="email" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={[authStyles.input, authStyles.ltrInput]}
+              accessibilityLabel="אימייל"
               placeholder="אימייל"
               placeholderTextColor={COLORS.textMuted}
               value={email}
@@ -131,8 +113,9 @@ export default function RegisterScreen({ navigation, route }) {
             />
           </View>
 
-          <View style={styles.inputContainer}>
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Text style={authStyles.label}>סיסמה</Text>
+          <View style={authStyles.field}>
+            <TouchableOpacity style={authStyles.iconButton} accessibilityRole="button" accessibilityLabel={showPassword ? 'הסתר סיסמה' : 'הצג סיסמה'} onPress={() => setShowPassword(!showPassword)}>
               <MaterialIcons
                 name={showPassword ? 'visibility' : 'visibility-off'}
                 size={22}
@@ -140,8 +123,9 @@ export default function RegisterScreen({ navigation, route }) {
               />
             </TouchableOpacity>
             <TextInput
-              style={styles.input}
-              placeholder="סיסמה (לפחות 6 תווים)"
+              style={authStyles.input}
+              accessibilityLabel="סיסמה"
+              placeholder="לפחות 6 תווים"
               placeholderTextColor={COLORS.textMuted}
               value={password}
               onChangeText={setPassword}
@@ -154,10 +138,12 @@ export default function RegisterScreen({ navigation, route }) {
             <MaterialIcons name="lock" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
           </View>
 
-          <View style={styles.inputContainer}>
+          <Text style={authStyles.label}>אימות סיסמה</Text>
+          <View style={authStyles.field}>
             <MaterialIcons name="lock" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
             <TextInput
-              style={styles.input}
+              style={authStyles.input}
+              accessibilityLabel="אימות סיסמה"
               placeholder="אימות סיסמה"
               placeholderTextColor={COLORS.textMuted}
               value={confirmPassword}
@@ -171,19 +157,22 @@ export default function RegisterScreen({ navigation, route }) {
           </View>
 
           <TouchableOpacity
-            style={[styles.registerButton, loading && styles.buttonDisabled]}
+            style={[authStyles.primaryButton, loading && authStyles.disabled]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: loading, busy: loading }}
             onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.text} />
+              <ActivityIndicator color={COLORS.textOnColor} />
             ) : (
-              <Text style={styles.registerButtonText}>הרשם</Text>
+              <Text style={authStyles.primaryButtonText}>הרשם</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.loginLink}
+            accessibilityRole="button"
             onPress={() => navigation.goBack()}
           >
             <Text style={styles.loginLinkText}>
@@ -191,96 +180,12 @@ export default function RegisterScreen({ navigation, route }) {
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    flexGrow: 1,
-    padding: SPACING.lg,
-    paddingTop: SPACING.xxl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  backButton: {
-    marginStart: SPACING.md,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: FONTS.xlarge,
-    fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'right',
-  },
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
-  },
-  logoText: {
-    color: COLORS.primary,
-    fontSize: FONTS.xlarge,
-    fontWeight: 'bold',
-    letterSpacing: 3,
-    marginTop: SPACING.sm,
-  },
-  form: {
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.lg,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputIcon: {
-    marginStart: SPACING.sm,
-  },
-  input: {
-    flex: 1,
-    color: COLORS.textOnColor,
-    fontSize: FONTS.regular,
-    paddingVertical: SPACING.md,
-  },
-  registerButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-    marginTop: SPACING.md,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  registerButtonText: {
-    color: COLORS.text,
-    fontSize: FONTS.medium,
-    fontWeight: 'bold',
-  },
-  loginLink: {
-    alignItems: 'center',
-    marginTop: SPACING.lg,
-  },
-  loginLinkText: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.regular,
-  },
-  loginLinkHighlight: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-  },
+  loginLink: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: SPACING.md },
+  loginLinkText: { color: COLORS.textSecondary, fontSize: FONTS.small },
+  loginLinkHighlight: { color: COLORS.primaryDark, fontWeight: '700' },
 });

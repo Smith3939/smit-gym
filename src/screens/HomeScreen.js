@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, ScrollView, useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  COLORS, DOMAIN, FONTS, SPACING, BORDER_RADIUS, GRADIENTS, SHADOWS,
+  COLORS, DOMAIN, FONTS, SPACING, BORDER_RADIUS,
 } from '../config/theme';
 import { useAuth } from '../context/AuthContext';
 import { isAIConnected, subscribeAiConnection } from '../services/aiService';
@@ -14,10 +14,8 @@ import AuroraBackground from '../components/AuroraBackground';
 import ActivityRings, { RingLegend } from '../components/ActivityRings';
 import StatTile, { SectionTitle } from '../components/StatTile';
 import Avatar from '../components/Avatar';
-import { FadeInView } from '../components/AnimatedCard';
 import { RTL_ICONS } from '../utils/rtl';
 
-const { width } = Dimensions.get('window');
 
 const QUOTES = [
   'הצלחה היא סכום של מאמצים קטנים שחוזרים על עצמם',
@@ -31,6 +29,8 @@ function QuickTile({ title, subtitle, icon, color, soft, onPress, width: w }) {
   return (
     <TouchableOpacity
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${subtitle}`}
       activeOpacity={0.88}
       style={[styles.quickTile, { width: w }]}
     >
@@ -44,6 +44,8 @@ function QuickTile({ title, subtitle, icon, color, soft, onPress, width: w }) {
 }
 
 export default function HomeScreen({ navigation }) {
+  const { width } = useWindowDimensions();
+  const contentWidth = Math.min(width, 760);
   const insets = useSafeAreaInsets();
   const { user, userProfile } = useAuth();
 
@@ -92,7 +94,8 @@ export default function HomeScreen({ navigation }) {
     },
   ];
 
-  const quickTileWidth = (width - SPACING.md * 2 - SPACING.sm * 2) / 3;
+  const quickColumns = contentWidth < 360 ? 2 : 3;
+  const quickTileWidth = (contentWidth - SPACING.md * 2 - SPACING.sm * (quickColumns - 1)) / quickColumns;
 
   const quickActions = [
     {
@@ -149,24 +152,41 @@ export default function HomeScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Header: greeting + avatar ─────────────────────────────────── */}
-        <FadeInView style={styles.header}>
+        <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.greeting}>{greeting}</Text>
             <Text style={styles.name}>{firstName}</Text>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
+            accessibilityRole="button"
+            accessibilityLabel="הפרופיל שלי"
             activeOpacity={0.85}
           >
             <Avatar photo={userProfile?.photo} size={48} borderColor={COLORS.border} />
           </TouchableOpacity>
-        </FadeInView>
+        </View>
+
+        <TouchableOpacity
+          style={styles.workoutAction}
+          onPress={() => navigation.navigate('WorkoutTab')}
+          accessibilityRole="button"
+          accessibilityLabel="אימון, התוכנית שלי"
+          activeOpacity={0.85}
+        >
+          <MaterialIcons name="fitness-center" size={24} color={COLORS.textOnColor} />
+          <View style={styles.workoutActionText}>
+            <Text style={styles.workoutActionTitle}>אימון</Text>
+            <Text style={styles.workoutActionSubtitle}>התוכנית שלי</Text>
+          </View>
+          <MaterialIcons name={RTL_ICONS.forward} size={22} color={COLORS.textOnColor} />
+        </TouchableOpacity>
 
         {/* ── Hero: activity rings ──────────────────────────────────────── */}
-        <FadeInView delay={80}>
+        <View>
           <View style={styles.heroCard}>
             <View style={styles.heroRow}>
-              <ActivityRings rings={rings} size={162} strokeWidth={15} gap={5}>
+              <ActivityRings rings={rings} size={contentWidth < 360 ? 124 : 148} strokeWidth={12} gap={5}>
                 <Text style={styles.ringCenterValue}>
                   {Math.round((workoutsThisWeek / workoutGoal) * 100)}%
                 </Text>
@@ -181,7 +201,7 @@ export default function HomeScreen({ navigation }) {
 
             <Text style={styles.quote}>{quote}</Text>
           </View>
-        </FadeInView>
+        </View>
 
         {/* ── Today's numbers ───────────────────────────────────────────── */}
         <SectionTitle>היום</SectionTitle>
@@ -235,7 +255,7 @@ export default function HomeScreen({ navigation }) {
           activeOpacity={0.9}
         >
           <LinearGradient
-            colors={GRADIENTS.primaryHero}
+            colors={[COLORS.tertiaryDark, COLORS.tertiaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.aiCard}
@@ -306,14 +326,23 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: SPACING.md, paddingBottom: SPACING.xl },
 
+  workoutAction: {
+    flexDirection: 'row', direction: 'rtl', alignItems: 'center', gap: SPACING.md,
+    backgroundColor: COLORS.primaryDark, borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.md, minHeight: 76, marginBottom: SPACING.md,
+  },
+  workoutActionText: { flex: 1 },
+  workoutActionTitle: { color: COLORS.textOnColor, fontSize: FONTS.medium, fontWeight: '700', textAlign: 'right' },
+  workoutActionSubtitle: { color: COLORS.textOnColor, fontSize: FONTS.small, marginTop: SPACING.xs, textAlign: 'right' },
   // Header
   header: {
     flexDirection: 'row-reverse',
+    direction: 'ltr',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.lg,
   },
-  headerText: { alignItems: 'flex-end' },
+  headerText: { alignItems: 'flex-end', direction: 'rtl' },
   greeting: {
     color: COLORS.textMuted,
     fontSize: FONTS.small,
@@ -331,17 +360,16 @@ const styles = StyleSheet.create({
   heroCard: {
     backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.xxl,
-    padding: SPACING.lg,
+    padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
-    ...SHADOWS.medium,
   },
   heroRow: {
     flexDirection: 'row-reverse',
     alignItems: 'center',
-    gap: SPACING.lg,
+    gap: SPACING.md,
   },
-  heroLegend: { flex: 1, alignItems: 'flex-end' },
+  heroLegend: { flex: 1, minWidth: 0, alignItems: 'flex-end' },
   heroTitle: {
     color: COLORS.text,
     fontSize: FONTS.medium,
@@ -372,6 +400,7 @@ const styles = StyleSheet.create({
   // Stat tiles
   tileRow: {
     flexDirection: 'row-reverse',
+    direction: 'ltr',
     gap: SPACING.md,
     marginBottom: SPACING.md,
   },
@@ -379,11 +408,11 @@ const styles = StyleSheet.create({
   // AI card
   aiCard: {
     flexDirection: 'row-reverse',
+    direction: 'ltr',
     alignItems: 'center',
     gap: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.xl,
-    ...SHADOWS.glow,
   },
   aiIcon: {
     width: 48,
@@ -425,6 +454,7 @@ const styles = StyleSheet.create({
   // Quick grid
   quickGrid: {
     flexDirection: 'row-reverse',
+    direction: 'ltr',
     flexWrap: 'wrap',
     gap: SPACING.sm,
   },
@@ -435,7 +465,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     borderWidth: 1,
     borderColor: COLORS.border,
-    ...SHADOWS.small,
   },
   quickIcon: {
     width: 40,
@@ -452,13 +481,14 @@ const styles = StyleSheet.create({
   },
   quickSubtitle: {
     color: COLORS.textMuted,
-    fontSize: FONTS.micro,
-    marginTop: 1,
+    fontSize: FONTS.tiny,
+    marginTop: SPACING.xs,
   },
 
   // Community
   communityCard: {
     flexDirection: 'row-reverse',
+    direction: 'ltr',
     alignItems: 'center',
     gap: SPACING.md,
     backgroundColor: COLORS.surface,
@@ -467,7 +497,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
-    ...SHADOWS.small,
   },
   communityText: { flex: 1, alignItems: 'flex-end' },
   communityTitle: {

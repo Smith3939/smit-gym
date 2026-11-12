@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
+  Alert, ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { COLORS, FONTS, SPACING, BORDER_RADIUS } from '../config/theme';
+import { COLORS, FONTS, SPACING } from '../config/theme';
 import { resetPassword } from '../services/authService';
-import { RTL_ICONS } from '../utils/rtl';
+import AuthShell, { authStyles } from '../components/AuthShell';
 
 export default function ForgotPasswordScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
@@ -44,10 +44,9 @@ export default function ForgotPasswordScreen({ navigation, route }) {
 
   if (sent) {
     return (
-      <View style={styles.container}>
+      <AuthShell title="הקישור נשלח!">
         <View style={styles.successContent}>
           <MaterialIcons name="mark-email-read" size={80} color={COLORS.primary} />
-          <Text style={styles.successTitle}>הקישור נשלח!</Text>
           <Text style={styles.successText}>
             שלחנו לך קישור לאיפוס סיסמה לכתובת {email}
           </Text>
@@ -55,29 +54,20 @@ export default function ForgotPasswordScreen({ navigation, route }) {
             בדוק את תיבת הדואר שלך (כולל ספאם)
           </Text>
           <TouchableOpacity
-            style={styles.backToLoginButton}
+            style={[authStyles.primaryButton, { marginTop: SPACING.lg }]}
+            accessibilityRole="button"
             onPress={() => navigation.navigate('Login')}
           >
-            <Text style={styles.backToLoginText}>חזרה להתחברות</Text>
+            <Text style={authStyles.primaryButtonText}>חזרה להתחברות</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </AuthShell>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <MaterialIcons name={RTL_ICONS.back} size={28} color={COLORS.text} />
-          </TouchableOpacity>
-          <Text style={styles.title}>איפוס סיסמה</Text>
-        </View>
-
+    <AuthShell title="איפוס סיסמה" onBack={() => navigation.goBack()}>
+      <View>
         <View style={styles.iconSection}>
           <MaterialIcons name="lock-reset" size={64} color={COLORS.primary} />
         </View>
@@ -86,140 +76,46 @@ export default function ForgotPasswordScreen({ navigation, route }) {
           הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה
         </Text>
 
-        <View style={styles.inputContainer}>
+        <Text style={authStyles.label}>אימייל</Text>
+        <View style={authStyles.field}>
           <MaterialIcons name="email" size={22} color={COLORS.textMuted} style={styles.inputIcon} />
           <TextInput
-            style={styles.input}
+            style={[authStyles.input, authStyles.ltrInput]}
+            accessibilityLabel="אימייל"
+            autoComplete="email"
             placeholder="אימייל"
             placeholderTextColor={COLORS.textMuted}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            textAlign="right"
+            textAlign="left"
           />
         </View>
 
         <TouchableOpacity
-          style={[styles.resetButton, loading && styles.buttonDisabled]}
+          style={[authStyles.primaryButton, loading && authStyles.disabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: loading, busy: loading }}
           onPress={handleReset}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color={COLORS.text} />
+            <ActivityIndicator color={COLORS.textOnColor} />
           ) : (
-            <Text style={styles.resetButtonText}>שלח קישור לאיפוס</Text>
+            <Text style={authStyles.primaryButtonText}>שלח קישור לאיפוס</Text>
           )}
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    flex: 1,
-    padding: SPACING.lg,
-    paddingTop: SPACING.xxl,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
-  },
-  backButton: {
-    marginStart: SPACING.md,
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: FONTS.xlarge,
-    fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'right',
-  },
-  iconSection: {
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  description: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.regular,
-    textAlign: 'center',
-    marginBottom: SPACING.xl,
-    lineHeight: 24,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  inputIcon: {
-    marginStart: SPACING.sm,
-  },
-  input: {
-    flex: 1,
-    color: COLORS.textOnColor,
-    fontSize: FONTS.regular,
-    paddingVertical: SPACING.md,
-  },
-  resetButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.md,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  resetButtonText: {
-    color: COLORS.textOnColor,
-    fontSize: FONTS.medium,
-    fontWeight: 'bold',
-  },
-  successContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING.lg,
-  },
-  successTitle: {
-    color: COLORS.text,
-    fontSize: FONTS.xlarge,
-    fontWeight: 'bold',
-    marginTop: SPACING.lg,
-  },
-  successText: {
-    color: COLORS.textSecondary,
-    fontSize: FONTS.regular,
-    textAlign: 'center',
-    marginTop: SPACING.md,
-    lineHeight: 24,
-  },
-  successSubtext: {
-    color: COLORS.textMuted,
-    fontSize: FONTS.small,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-  },
-  backToLoginButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.md,
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.xxl,
-    marginTop: SPACING.xl,
-  },
-  backToLoginText: {
-    color: COLORS.textOnColor,
-    fontSize: FONTS.medium,
-    fontWeight: 'bold',
-  },
+  iconSection: { alignItems: 'center', marginBottom: SPACING.lg },
+  description: { color: COLORS.textSecondary, fontSize: FONTS.regular, textAlign: 'right', marginBottom: SPACING.lg, lineHeight: 26 },
+  inputIcon: { marginStart: SPACING.sm },
+  successContent: { alignItems: 'center', gap: SPACING.sm },
+  successText: { color: COLORS.textSecondary, fontSize: FONTS.regular, textAlign: 'center', lineHeight: 26, marginTop: SPACING.md },
+  successSubtext: { color: COLORS.textMuted, fontSize: FONTS.small, textAlign: 'center', lineHeight: 22 },
 });

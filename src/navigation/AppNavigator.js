@@ -33,7 +33,7 @@ const AuthStack = createStackNavigator();
 
 function AuthNavigator() {
   return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
+    <AuthStack.Navigator screenOptions={{ headerShown: false, cardStyle: { flex: 1, overflow: 'hidden', backgroundColor: COLORS.background } }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
       <AuthStack.Screen name="Register" component={RegisterScreen} />
       <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
@@ -69,7 +69,9 @@ function HomeTabs() {
           // platform and was overflowing the bar, clipping the icons.
           return <MaterialIcons name={iconName} size={ICON_SIZE} color={color} />;
         },
-        tabBarActiveTintColor: COLORS.primary,
+        tabBarActiveTintColor: COLORS.primaryDark,
+        tabBarActiveBackgroundColor: COLORS.primarySoft,
+        tabBarHideOnKeyboard: true,
         tabBarInactiveTintColor: COLORS.textMuted,
         tabBarStyle: {
           ...RTL_DIRECTION,
@@ -82,7 +84,7 @@ function HomeTabs() {
           paddingTop: TAB_BAR_V_PADDING,
           paddingBottom: TAB_BAR_V_PADDING + insets.bottom,
         },
-        tabBarItemStyle: RTL_DIRECTION,
+        tabBarItemStyle: { ...RTL_DIRECTION, borderRadius: 14, marginHorizontal: 2, minHeight: 48 },
         // Pin the stacked layout. Left to itself React Navigation puts the
         // label beside the icon on wider viewports, which changes the height
         // the bar needs and is what made this hard to reproduce off-device.
@@ -92,7 +94,7 @@ function HomeTabs() {
           width: ICON_SIZE,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: '600',
           marginTop: 2,
           includeFontPadding: false,
@@ -118,7 +120,7 @@ export default function AppNavigator() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { backgroundColor: COLORS.background } }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, cardStyle: { flex: 1, overflow: 'hidden', backgroundColor: COLORS.background } }}>
       {isLoggedIn ? (
         <>
           <Stack.Screen name="Main" component={HomeTabs} />

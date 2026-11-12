@@ -7,7 +7,7 @@ import { USE_NATIVE_DRIVER } from '../utils/animation';
 import { RTL_ROW_CENTER } from '../utils/rtl';
 
 /**
- * Modern button with gradient, glow, and press animation
+ * Shared button with consistent contrast and press feedback
  * Supports primary/secondary/ghost variants
  */
 export default function ModernButton({
@@ -89,6 +89,9 @@ export default function ModernButton({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={disabled || loading}
+          accessibilityRole="button"
+          accessibilityLabel={title}
+          accessibilityState={{ disabled: disabled || loading, busy: loading }}
           activeOpacity={0.95}
         >
           <LinearGradient
@@ -98,20 +101,20 @@ export default function ModernButton({
             style={[
               styles.buttonBase,
               sizeStyle,
-              disabled && styles.disabled,
+              (disabled || loading) && styles.disabled,
               style,
             ]}
           >
             {loading ? (
-              <ActivityIndicator color={COLORS.text} />
+              <ActivityIndicator color={COLORS.textOnColor} />
             ) : (
               <>
                 {icon && !iconRight && (
-                  <MaterialIcons name={icon} size={iconSize} color={COLORS.text} />
+                  <MaterialIcons name={icon} size={iconSize} color={COLORS.textOnColor} />
                 )}
-                <Text style={[styles.buttonText, { fontSize: textSize }]}>{title}</Text>
+                <Text style={[styles.buttonText, { color: COLORS.textOnColor, fontSize: textSize }]}>{title}</Text>
                 {iconRight && (
-                  <MaterialIcons name={iconRight} size={iconSize} color={COLORS.text} />
+                  <MaterialIcons name={iconRight} size={iconSize} color={COLORS.textOnColor} />
                 )}
               </>
             )}
@@ -129,12 +132,15 @@ export default function ModernButton({
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
           disabled={disabled || loading}
+          accessibilityRole="button"
+          accessibilityLabel={title}
+          accessibilityState={{ disabled: disabled || loading, busy: loading }}
           activeOpacity={0.95}
           style={[
             styles.buttonBase,
             styles.secondary,
             sizeStyle,
-            disabled && styles.disabled,
+            (disabled || loading) && styles.disabled,
             style,
           ]}
         >
@@ -166,12 +172,15 @@ export default function ModernButton({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled || loading}
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        accessibilityState={{ disabled: disabled || loading, busy: loading }}
         activeOpacity={0.95}
         style={[
           styles.buttonBase,
           styles.ghost,
           sizeStyle,
-          disabled && styles.disabled,
+          (disabled || loading) && styles.disabled,
           style,
         ]}
       >
@@ -193,6 +202,7 @@ const styles = StyleSheet.create({
   buttonBase: {
     ...RTL_ROW_CENTER,
     justifyContent: 'center',
+    minHeight: 48,
     borderRadius: BORDER_RADIUS.lg,
     gap: SPACING.sm,
   },

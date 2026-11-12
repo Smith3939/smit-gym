@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { View, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../config/theme';
@@ -16,36 +16,15 @@ import { USE_NATIVE_DRIVER } from '../utils/animation';
 export default function GlassCard({
   children,
   style,
+  containerStyle,
   onPress,
   gradientColors,
   borderColor,
   tint,
-  delay = 0,
-  noAnimation,
   glow,
   flat,
 }) {
-  const opacity = useRef(new Animated.Value(noAnimation ? 1 : 0)).current;
-  const translateY = useRef(new Animated.Value(noAnimation ? 0 : 14)).current;
   const scale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (noAnimation) return;
-    Animated.parallel([
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 420,
-        delay,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-      Animated.spring(translateY, {
-        toValue: 0,
-        delay,
-        friction: 9,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }),
-    ]).start();
-  }, []);
 
   const handlePressIn = () => {
     if (!onPress) return;
@@ -65,13 +44,13 @@ export default function GlassCard({
     }).start();
   };
 
-  const animStyle = { opacity, transform: [{ translateY }, { scale }] };
+  const animStyle = { transform: [{ scale }] };
 
   const cardStyle = [
     styles.card,
     !flat && SHADOWS.medium,
     glow && SHADOWS.glow,
-    borderColor ? { borderColor, borderWidth: 1 } : styles.hairline,
+    (flat || borderColor) && { borderColor: borderColor || COLORS.border, borderWidth: 1 },
     style,
   ];
 
@@ -94,8 +73,9 @@ export default function GlassCard({
 
   if (onPress) {
     return (
-      <Animated.View style={animStyle}>
+      <Animated.View style={[animStyle, containerStyle]}>
         <TouchableOpacity
+          accessibilityRole="button"
           activeOpacity={0.92}
           onPress={onPress}
           onPressIn={handlePressIn}
@@ -107,7 +87,7 @@ export default function GlassCard({
     );
   }
 
-  return <Animated.View style={animStyle}>{content}</Animated.View>;
+  return <Animated.View style={[animStyle, containerStyle]}>{content}</Animated.View>;
 }
 
 const styles = StyleSheet.create({
@@ -118,9 +98,5 @@ const styles = StyleSheet.create({
   },
   solid: {
     backgroundColor: COLORS.surface,
-  },
-  hairline: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
 });
