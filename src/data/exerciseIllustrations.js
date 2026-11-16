@@ -1,9 +1,12 @@
+import { additionalExerciseGuides } from './additionalExerciseGuides.js';
+
 // Original schematic drawings in a 120×100 coordinate system. Each pose
 // specifies a head, visible limbs, and optional equipment/support paths.
 const pose = (head, body, equipment = '', far = '') => ({ head, body, equipment, far });
 const guide = (start, end, cue, a, b) => ({ start, end, cue, poses: b ? [a, b] : [a] });
 
 export const EXERCISE_ILLUSTRATIONS = Object.freeze({
+  ...additionalExerciseGuides,
   squat: guide('עמידה', 'ירידה', 'הורד את האגן לאחור ולמטה, ושמור את כפות הרגליים על הרצפה.',
     pose([61, 21], 'M60 29 L59 59 L63 76 L64 91 L74 91 M59 35 L48 43 L47 33', 'M41 34 H76 M42 28 V40 M75 28 V40', 'M59 59 L53 76 L51 91 L60 91'),
     pose([62, 31], 'M59 39 L45 61 L71 67 L64 91 L75 91 M58 43 L49 50 L47 41', 'M42 42 H76 M43 36 V48 M75 36 V48', 'M45 61 L65 65 L56 91 L66 91')),

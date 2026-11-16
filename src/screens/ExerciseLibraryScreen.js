@@ -11,6 +11,8 @@ import { RTL_ICONS } from '../utils/rtl';
 const FAVORITES_TAB = '__favorites__';
 
 /** One exercise row. */
+import ExerciseIllustration from '../components/ExerciseIllustration';
+
 function ExerciseItem({ exercise, groupColor, isFavorite, onToggleFavorite }) {
   return (
     <View style={styles.card}>
@@ -42,6 +44,7 @@ function ExerciseItem({ exercise, groupColor, isFavorite, onToggleFavorite }) {
         </View>
       </View>
 
+      <ExerciseIllustration exerciseId={exercise.id} name={exercise.name} />
       <View style={[styles.cardAccent, { backgroundColor: groupColor }]} />
     </View>
   );
