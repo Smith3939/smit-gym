@@ -54,8 +54,8 @@ export const COLORS = {
   // ── Text ──────────────────────────────────────────────────────────────────
   text: '#0B0B0F',             // primary text (near-black)
   textSecondary: '#4B4B55',
-  textMuted: '#8A8A93',
-  textDim: '#B0B0B8',
+  textMuted: '#656570',
+  textDim: '#71717C',
   textOnColor: '#FFFFFF',      // text sitting ON a coloured/gradient surface
 
   // ── Lines ─────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ export const DOMAIN = {
 };
 
 export const GRADIENTS = {
-  primary: ['#FF375F', '#FF6B87'],
+  primary: ['#D81E45', '#C71A40'],
   primaryHero: ['#FF375F', '#BF5AF2'],
   aurora: ['#FF375F', '#BF5AF2', '#0A84FF'],
   sunset: ['#FF375F', '#FF9F0A'],

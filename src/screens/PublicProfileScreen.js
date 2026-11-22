@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Image,
-  ActivityIndicator, Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,8 +16,6 @@ import {
   getCommunityBlocks, setCommunityBlock, reportCommunityProfile,
 } from '../services/socialService';
 
-const { width } = Dimensions.get('window');
-const GRID_SIZE = (width - SPACING.md * 2 - 4) / 3;
 
 export default function PublicProfileScreen({ navigation, route }) {
   const { uid } = route.params;
@@ -373,8 +371,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   gridImage: {
-    width: GRID_SIZE,
-    height: GRID_SIZE,
+    width: '32%',
+    aspectRatio: 1,
     borderRadius: BORDER_RADIUS.sm,
   },
 
