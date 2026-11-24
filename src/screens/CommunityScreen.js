@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput,
-  Image, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform,
+  Image, ActivityIndicator, RefreshControl, KeyboardAvoidingView, Platform, Share, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -10,10 +10,11 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import AuroraBackground from '../components/AuroraBackground';
 import GlassCard from '../components/GlassCard';
+import ShortVideo from '../components/ShortVideo';
 import Avatar from '../components/Avatar';
 import { FadeInView } from '../components/AnimatedCard';
 import {
-  createPost, deletePost, toggleLike, getLikeInfo,
+  pickShortVideo, uploadShortVideo, createPost, deletePost, updatePost, toggleLike, getLikeInfo,
   getAllPublicProfiles, upsertPublicProfile, getPublicProfile, sendBuddyRequest,
   respondToBuddyRequest, getNearbyProfiles, clearSharedLocation, subscribeCommunity,
   setCommunityBlock, savePartnerCard, removePartnerCard, getActivePartnerProfiles,
@@ -45,6 +46,10 @@ function formatDistance(km) {
 function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
   const [likeInfo, setLikeInfo] = useState({ count: 0, isLiked: false });
   const toast = useToast();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(post.text || '');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (post.pending) return;
@@ -93,15 +98,37 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
             </Text>
           </View>
         </TouchableOpacity>
-        {post.uid === myUid && (
-          <TouchableOpacity onPress={handleDelete} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <MaterialIcons name="delete-outline" size={20} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="אפשרויות פוסט" style={styles.menuButton} disabled={post.pending} onPress={() => setMenuOpen(!menuOpen)}>
+          <MaterialIcons name="more-horiz" size={26} color={COLORS.text} />
+        </TouchableOpacity>
       </View>
 
+      {menuOpen && <View style={styles.postMenu}>
+        <TouchableOpacity style={styles.menuButton} accessibilityRole="button" onPress={async () => {
+          try { await Share.share({ message: `${post.authorName || 'מתאמן'}\n${post.text || ''}\nhttps://smit-gym.vercel.app` }); setMenuOpen(false); }
+          catch { toast.error('השיתוף נכשל'); }
+        }}><Text style={styles.toolAction}>שתף</Text></TouchableOpacity>
+        {post.uid === myUid && <>
+          <TouchableOpacity style={styles.menuButton} onPress={() => { setDraft(post.text || ''); setEditing(true); setMenuOpen(false); }}><Text style={styles.toolAction}>ערוך פוסט</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.menuButton} onPress={() => {
+            setMenuOpen(false);
+            if (Platform.OS === 'web') { if (window.confirm('למחוק את הפוסט?')) handleDelete(); }
+            else Alert.alert('למחוק את הפוסט?', 'הפוסט יוסר מהקהילה', [{text:'ביטול'}, {text:'מחק',style:'destructive',onPress:handleDelete}]);
+          }}><Text style={styles.toolAction}>מחק פוסט</Text></TouchableOpacity>
+        </>}
+      </View>}
+      {editing && <View>
+        <TextInput accessibilityLabel="טקסט הפוסט" style={styles.toolInput} multiline maxLength={3000} value={draft} onChangeText={setDraft} />
+        <TouchableOpacity style={styles.menuButton} disabled={saving || (!draft.trim() && !post.image && !post.video)} onPress={async () => {
+          setSaving(true);
+          try { await updatePost(post.id, draft.trim()); setEditing(false); toast.success('הפוסט עודכן'); }
+          catch { toast.error('העדכון נכשל. נסה שוב'); }
+          finally { setSaving(false); }
+        }}><Text style={styles.toolAction}>{saving ? 'שומר…' : 'שמור שינויים'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.menuButton} disabled={saving} onPress={() => setEditing(false)}><Text style={styles.toolAction}>ביטול</Text></TouchableOpacity>
+      </View>}
       {/* Text */}
-      {!!post.text && <Text style={styles.postText}>{post.text}</Text>}
+      {!editing && !!post.text && <Text style={styles.postText}>{post.text}</Text>}
 
       {/* Shared workout payload */}
       {post.type === 'workout' && post.payload && (
@@ -139,6 +166,7 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
         </View>
       )}
 
+      {!!post.video && <ShortVideo uri={post.video} />}
       {/* Image */}
       {!!post.image && (
         <Image source={{ uri: post.image }} style={styles.postImage} resizeMode="cover" />
@@ -169,7 +197,7 @@ function PostCard({ post, myUid, onOpenProfile, onDeleted }) {
 
 function PersonCard({ person, partnerCard, buddyState, distance, onOpenProfile, onRequestBuddy }) {
   const buddyLabel = {
-    none: 'אימון משותף?',
+    none: 'הוסף לחברים',
     pending: 'ממתין...',
     accepted: 'חברים 💪',
   }[buddyState];
@@ -243,6 +271,7 @@ export default function CommunityScreen({ navigation }) {
   // Composer state
   const [composerText, setComposerText] = useState('');
   const [composerImage, setComposerImage] = useState(null);
+  const [composerVideo, setComposerVideo] = useState(null);
   const [posting, setPosting] = useState(false);
 
   // People filter
@@ -299,14 +328,16 @@ export default function CommunityScreen({ navigation }) {
   const handlePost = async () => {
     const text = composerText.trim();
     const image = composerImage;
-    if (!text && !image) return;
+    if (!text && !image && !composerVideo) return;
 
     setPosting(true);
     try {
+      const video = composerVideo ? await uploadShortVideo(user.uid, composerVideo) : null;
       await createPost({
         uid: user.uid, authorName: myName, authorPhoto: myPhoto,
-        authorGym: userProfile?.gymName || null, text, image, type: 'text', payload: null,
+        authorGym: userProfile?.gymName || null, text, image, video, type: video ? 'short' : 'text', payload: null,
       });
+      setComposerVideo(null);
       setComposerText('');
       setComposerImage(null);
       toast.success('הפוסט פורסם! 🎉');
@@ -318,7 +349,7 @@ export default function CommunityScreen({ navigation }) {
 
   const handlePickImage = async () => {
     const img = await pickAndCompressImage();
-    if (img) setComposerImage(img);
+    if (img) { setComposerImage(img); setComposerVideo(null); }
   };
 
   const handleLocation = async (action) => {
@@ -505,6 +536,14 @@ export default function CommunityScreen({ navigation }) {
           >
             {tab === 'feed' ? (
               <>
+                {blocksReady && people.some(p => !hidden.has(p.uid) && buddyStateFor(p.uid) === 'none') && <View style={{marginBottom:20}}>
+                  <Text style={styles.suggestionsTitle}>אנשים שאולי תרצה להכיר</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap:12, paddingVertical:12}}>
+                    {people.filter(p => !hidden.has(p.uid) && buddyStateFor(p.uid) === 'none').slice(0,10).map(person => <View key={person.uid} style={{width:210}}>
+                      <PersonCard person={person} buddyState={buddyStateFor(person.uid)} onOpenProfile={openProfile} onRequestBuddy={handleRequestBuddy} />
+                    </View>)}
+                  </ScrollView>
+                </View>}
                 {/* Composer */}
                 <GlassCard style={styles.composer} noAnimation>
                   <View style={styles.composerRow}>
@@ -519,6 +558,7 @@ export default function CommunityScreen({ navigation }) {
                       textAlign="right"
                     />
                   </View>
+                  {composerVideo && <View><ShortVideo uri={composerVideo.uri} /><TouchableOpacity style={styles.menuButton} onPress={() => setComposerVideo(null)}><Text style={styles.toolAction}>הסר סרטון</Text></TouchableOpacity></View>}
                   {composerImage && (
                     <View style={styles.composerImageWrap}>
                       <Image source={{ uri: composerImage }} style={styles.composerImage} />
@@ -532,9 +572,9 @@ export default function CommunityScreen({ navigation }) {
                   )}
                   <View style={styles.composerActions}>
                     <TouchableOpacity
-                      style={[styles.publishBtn, (!composerText.trim() && !composerImage) && { opacity: 0.5 }]}
+                      style={[styles.publishBtn, (!composerText.trim() && !composerImage && !composerVideo) && { opacity: 0.5 }]}
                       onPress={handlePost}
-                      disabled={posting || (!composerText.trim() && !composerImage)}
+                      disabled={posting || (!composerText.trim() && !composerImage && !composerVideo)}
                     >
                       {posting ? (
                         <ActivityIndicator size="small" color={COLORS.text} />
@@ -542,6 +582,10 @@ export default function CommunityScreen({ navigation }) {
                         <Text style={styles.publishBtnText}>פרסם</Text>
                       )}
                     </TouchableOpacity>
+                    <TouchableOpacity style={styles.imageBtn} disabled={posting} onPress={async () => {
+                      try { const asset = await pickShortVideo(); if (asset) { setComposerVideo(asset); setComposerImage(null); } }
+                      catch (error) { toast.error(error.message); }
+                    }}><MaterialIcons name="video-library" size={22} color={COLORS.primaryDark} /><Text style={styles.imageBtnText}>שורט</Text></TouchableOpacity>
                     <TouchableOpacity onPress={handlePickImage} style={styles.imageBtn}>
                       <MaterialIcons name="photo-camera" size={22} color={COLORS.secondary} />
                       <Text style={styles.imageBtnText}>תמונה</Text>
@@ -715,6 +759,9 @@ export default function CommunityScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  menuButton: { minHeight: 44, minWidth:44, justifyContent:'center', alignItems:'center' },
+  postMenu: { borderTopWidth:1, borderColor:COLORS.border, marginTop:8, flexDirection:'row-reverse', justifyContent:'space-around' },
+  suggestionsTitle: {fontSize:20,fontWeight:'700',color:COLORS.text,textAlign:'right'},
   communityTools: { backgroundColor: COLORS.surface, padding: 16, borderRadius: 16, marginBottom: 16 },
   toolTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700', textAlign: 'right' },
   toolHelp: { color: COLORS.textSecondary, fontSize: 14, lineHeight: 21, textAlign: 'right' },
