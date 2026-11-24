@@ -257,6 +257,10 @@ service cloud.firestore {
       allow delete: if signedIn() && request.auth.uid == userId;
     }
 
+    match /phoneDiscoveryIndex/{id} { allow read, write: if false; }
+    match /phoneDiscoveryUsers/{id} { allow read, write: if false; }
+    match /phoneDiscoveryQuotas/{id} { allow read, write: if false; }
+
     // ── Feed posts: read by all signed-in, create/delete by author only ──
     match /posts/{postId} {
       allow read: if signedIn();

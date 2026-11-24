@@ -18,6 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Location from 'expo-location';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db } from '../config/firebase';
 import { nearbyPrefixes } from '../utils/geohash';
 
@@ -298,4 +299,29 @@ export function distanceKm(a, b) {
     Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) *
     Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s));
+}
+
+export function updatePost(postId, text) {
+  return updateDoc(doc(db, 'posts', postId), { text, editedAt: serverTimestamp() });
+}
+
+export async function pickShortVideo() {
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) throw new Error('יש לאפשר גישה לספריית המדיה');
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes:['videos'], videoMaxDuration:60 });
+  if (result.canceled) return null;
+  const asset = result.assets[0];
+  if (!asset.duration || asset.duration > 60000 || asset.fileSize > 30 * 1024 * 1024) {
+    throw new Error('בחר סרטון עד דקה ועד 30 מגה');
+  }
+  return asset;
+}
+
+export async function uploadShortVideo(uid, asset) {
+  const response = await fetch(asset.uri);
+  const blob = await response.blob();
+  if (blob.size > 30 * 1024 * 1024) throw new Error('הסרטון גדול מדי');
+  const file = ref(getStorage(), `shorts/${uid}/${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  await uploadBytes(file, blob, {contentType: asset.mimeType || 'video/mp4'});
+  return getDownloadURL(file);
 }
