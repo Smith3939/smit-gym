@@ -35,7 +35,13 @@
     },
     "plugins": [
       "expo-web-browser",
-      "expo-video"
+      "expo-video",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "אפשר ל־Smit Gym לקרוא מספרי טלפון כדי למצוא חברים שכבר הצטרפו וגילו את החשבון שלהם."
+        }
+      ]
     ],
     "extra": {
       "eas": {

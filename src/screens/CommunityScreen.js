@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import AuroraBackground from '../components/AuroraBackground';
 import GlassCard from '../components/GlassCard';
+import ContactDiscovery from '../components/ContactDiscovery';
 import ShortVideo from '../components/ShortVideo';
 import Avatar from '../components/Avatar';
 import { FadeInView } from '../components/AnimatedCard';
@@ -275,6 +276,7 @@ export default function CommunityScreen({ navigation }) {
   const [posting, setPosting] = useState(false);
 
   // People filter
+  const [contactMatches, setContactMatches] = useState(null);
   const [peopleFilter, setPeopleFilter] = useState('all'); // all | gym | city | near
   // Exact fix stays in memory for this session only. What we store is geohash5.
   const [myLocation, setMyLocation] = useState(null);
@@ -614,6 +616,14 @@ export default function CommunityScreen({ navigation }) {
               </>
             ) : (
               <>
+                <ContactDiscovery onMatches={async uids => {
+                  const matches = (await Promise.all(uids.map(getPublicProfile))).filter(Boolean);
+                  setContactMatches(matches);
+                }} />
+                {contactMatches && <View style={{marginBottom:20}}>
+                  <Text style={styles.suggestionsTitle}>חברים מאנשי הקשר שלך</Text>
+                  {contactMatches.filter(p => !hidden.has(p.uid)).map(person => <PersonCard key={person.uid} person={person} buddyState={buddyStateFor(person.uid)} onOpenProfile={openProfile} onRequestBuddy={handleRequestBuddy} />)}
+                </View>}
                 {/* Incoming buddy requests */}
                 {requests.length > 0 && (
                   <GlassCard
